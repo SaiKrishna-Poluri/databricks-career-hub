@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reference Architectures · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="rsa-track.html">Resident Solutions Architect Track</a> / Reference Architectures</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge rsa">RSA Track · Module 03</span>
+        <h1>Reference Architectures</h1>
+        <p class="lede">The blueprints an architect draws on the whiteboard - batch, streaming, ML, GenAI, and the Azure wiring underneath.</p>
+      </header>
+
+      <h2>The core lakehouse, drawn as five planes</h2>
+      <p>When an RSA is asked "draw us your reference architecture," the strongest answer is not a product list - it is a small number of <strong>planes</strong> with clear responsibilities, and then products mapped onto them. Practice this exact talk track: draw three boxes left to right (ingestion, storage and processing, serving), then draw two horizontal bands across all three (governance, operations). Every Databricks Data Intelligence Platform engagement is a variation of this picture.</p>
+<pre><code> OPERATIONS  | CI/CD (Declarative Automation Bundles, Azure DevOps),
+             | Lakeflow Jobs orchestration, monitoring, cost / FinOps
+ ------------+--------------------------------------------------------------
+ GOVERNANCE  | Unity Catalog: catalogs, grants, lineage, audit,
+             | row/column security, metric views, Delta Sharing policies
+ ------------+--------------------------------------------------------------
+
+   INGESTION                STORAGE + PROCESSING            SERVING
+ +-----------------+      +------------------------+     +--------------------+
+ | Lakeflow Connect|      | Delta Lake on ADLS Gen2|     | DBSQL warehouses   |
+ | (SaaS + DB      | ---&gt; | Bronze -&gt; Silver -&gt;    | --&gt; | AI/BI dashboards   |
+ |  connectors,    |      |   Gold (medallion)     |     |  + Genie, Power BI |
+ |  Zerobus Ingest)|      | Lakeflow Jobs + Spark  |     | Mosaic AI Model    |
+ | ADF, Auto Loader|      |  Declarative Pipelines |     |  Serving (APIs)    |
+ | partner tools   |      | serverless or classic  |     | Delta Sharing      |
+ +-----------------+      +------------------------+     +--------------------+</code></pre>
+      <p>The plane-by-plane talk track:</p>
+      <ul>
+        <li><strong>Ingestion.</strong> Pick by source type, not by habit. <strong>Lakeflow Connect</strong> for managed SaaS and database connectors (Salesforce, Workday, SQL Server are GA; ServiceNow, SharePoint, PostgreSQL and more behind them), with <strong>Zerobus Ingest</strong> for direct high-throughput event writes. <strong>ADF</strong> when the customer is an Azure shop with existing self-hosted integration runtimes reaching on-prem ERPs. <strong>Auto Loader</strong> for incremental cloud-file arrival. Partner tools (Fivetran, Qlik Replicate) when CDC licensing already exists. The architect's job is to rationalize this list, not to maximize it.</li>
+        <li><strong>Storage and processing.</strong> Delta Lake on ADLS Gen2, organized as medallion (Bronze raw and replayable, Silver conformed, Gold consumption-shaped). Transformation runs as Lakeflow Jobs orchestrating notebooks/Spark, or as Lakeflow Spark Declarative Pipelines (the renamed DLT) where you want managed dependencies, expectations, and streaming tables. For new tables, recommend liquid clustering - ideally <code>CLUSTER BY AUTO</code> - rather than partitioning plus Z-ORDER, which is legacy guidance.</li>
+        <li><strong>Serving.</strong> DBSQL warehouses feeding AI/BI dashboards and Power BI; Mosaic AI Model Serving for low-latency APIs; Delta Sharing for cross-org distribution without copies; Lakebase Postgres (Azure public preview as of mid-2026) where an application needs true OLTP next to the lakehouse.</li>
+        <li><strong>Governance.</strong> Unity Catalog spans every plane: one metastore per region, three-level namespace, lineage from ingestion through dashboards, row/column security, audit. Drawing UC as a band - not a box - is the visual cue that you understand it.</li>
+        <li><strong>Operations.</strong> CI/CD with Declarative Automation Bundles (renamed from Databricks Asset Bundles in March 2026; the CLI is still <code>databricks bundle</code>), job monitoring, system tables for cost, runbooks and hypercare.</li>
+      </ul>
+
+      <div class="callout tip">Open every whiteboard with the workload, not the platform: "What lands tomorrow morning if this pipeline fails tonight?" Then draw the planes and place the customer's existing tools into them. Reference architectures land when the customer sees their own estate inside your drawing.</div>
+
+      <div class="callout story">Your ingestion-framework blueprint is the Port Authority of NY &amp; NJ ICMS lakehouse: a metadata-driven ADF + PySpark framework landing SAP ECC FI, IBM Planning Analytics, and Budget PRO into ADLS Gen2 Bronze - Plan, Budget, Forecast, and Actuals across Capital and Operating portfolios for Aviation, PATH, and TB&amp;T. The point you make in interviews: one parameterized pattern plus a control table onboarded new sources as configuration rows, not new pipelines. That is exactly the framework an RSA proposes when a customer has forty sources and three engineers.</div>
+
+      <h2>Azure deployment anatomy - your depth area</h2>
+      <p>On Azure, Databricks is a first-party service, and the deployment conversation is where you should be strongest. Know this layer cold:</p>
+      <ul>
+        <li><strong>Workspace anatomy.</strong> The control plane (web app, job scheduler, UC, metadata) runs in the Databricks-managed Azure subscription; the compute plane runs in the customer subscription. A classic workspace creates a locked <strong>managed resource group</strong> holding the managed storage account (DBFS root and workspace system data) and, with VNet injection, nothing network-shaped you did not bring. Serverless compute runs in Databricks-managed infrastructure with its own network controls (Network Connectivity Configurations for egress).</li>
+        <li><strong>VNet injection.</strong> Deploy the compute plane into a customer-managed VNet with two delegated subnets (host/public and container/private), customer NSGs, and <strong>secure cluster connectivity</strong> (no public IPs on cluster nodes). This is what lets cluster traffic ride the customer's routing - Azure Firewall egress via UDRs, on-prem reachability, service endpoints.</li>
+        <li><strong>Private Link.</strong> Two distinct legs: <strong>front-end</strong> (users and tools to the workspace web app/APIs) and <strong>back-end</strong> (compute plane to the control plane relay and APIs). A hardened pattern uses both, plus private endpoints on ADLS Gen2 and Key Vault, and a browser-auth private endpoint for SSO callback. Be ready to draw the DNS story - private DNS zones are where these designs actually fail.</li>
+        <li><strong>Storage and identity.</strong> ADLS Gen2 with hierarchical namespace is the data lake. Unity Catalog reaches it through the <strong>Azure Databricks access connector</strong> - a managed identity granted Storage Blob Data Contributor - registered in UC as a storage credential, with external locations layered on top. This replaces service principals with secrets and the old credential-passthrough pattern: no secrets to rotate, grants live in UC.</li>
+        <li><strong>Key Vault.</strong> Key Vault-backed secret scopes for the credentials that remain (JDBC users, API keys); customer-managed keys for managed services and storage where compliance demands it.</li>
+        <li><strong>ExpressRoute and landing zones.</strong> ERP extraction from on-prem rides ExpressRoute through a hub-spoke landing zone: Databricks VNet as a spoke, firewall in the hub, UDRs forcing egress through inspection. Align the workspace with the customer's Azure landing-zone standard (policy, naming, budgets) rather than fighting it - that single sentence buys enormous credibility with platform teams.</li>
+      </ul>
+
+      <div class="callout warn">Network injection is a <strong>day-zero decision</strong>: you cannot convert a managed-VNet workspace to VNet injection later - it is a redeploy. The classic failure mode is a pilot workspace built with defaults that becomes "production" and then fails the security review. Always provision even the sandbox with the target network pattern, or explicitly label it disposable.</div>
+
+      <div class="callout interview"><strong>"Walk me through securing a Databricks deployment on Azure end to end."</strong> Outline: (1) Network - VNet injection, secure cluster connectivity, back-end and front-end Private Link, UDR egress through Azure Firewall, private endpoints on ADLS Gen2 and Key Vault, get the private DNS zones right. (2) Identity - Entra ID SSO with SCIM provisioning, groups not users, managed identities via the access connector instead of secrets. (3) Data - Unity Catalog grants, row filters and column masks, no direct storage-key access paths left open. (4) Compute - cluster policies pinning instance types and tags, serverless egress governed by Network Connectivity Configurations. (5) Audit - system tables and diagnostic logs to the SIEM. Close by saying you sequence this against the customer's landing-zone standards - that is the RSA move, not just the checklist.</div>
+
+      <h2>Workspace topology and Unity Catalog as the cross-workspace layer</h2>
+      <p>Customers always ask "how many workspaces?" The honest answer: workspaces are an isolation and blast-radius boundary; Unity Catalog is the sharing boundary. Because the UC metastore is account-level and regional, data, lineage, and grants span workspaces - so you can keep workspaces small without fragmenting governance.</p>
+      <table>
+        <thead>
+          <tr><th>Topology</th><th>Best for</th><th>Strengths</th><th>Watch out for</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Workspace per environment (dev/test/prod)</td><td>Single team or single domain platforms</td><td>Simple promotion story; clean separation of duties; easy cost attribution per stage</td><td>Everything shares one prod workspace - noisy-neighbor risk grows with adoption</td></tr>
+          <tr><td>Workspace per domain (e.g., finance, supply chain) x environment</td><td>Data-mesh-leaning enterprises</td><td>Domain autonomy; blast radius and admin scope per domain; UC still gives cross-domain sharing</td><td>Workspace sprawl; needs automation (Terraform/Bundles) and a platform team to stay consistent</td></tr>
+          <tr><td>Workspace per business unit</td><td>Conglomerates with hard chargeback or regulatory walls</td><td>Strong cost and compliance separation</td><td>Duplicated platform effort; cross-BU collaboration leans entirely on UC and Delta Sharing</td></tr>
+        </tbody>
+      </table>
+      <p>Whichever topology you pick, bind catalogs deliberately: <strong>workspace-catalog binding</strong> so prod catalogs are only visible from prod workspaces, with a <code>finance_dev</code> / <code>finance_test</code> / <code>finance_prod</code> catalog convention carrying identical schemas through promotion.</p>
+
+      <h2>Batch analytics reference architecture (the one you have lived)</h2>
+      <p>The bread-and-butter pattern: ERP and operational sources feeding a medallion lakehouse feeding executive BI. Model the whiteboard on the finance Record-to-Report shape:</p>
+<pre><code>  JDE   SAP   HFM (Hyperion)   IBM DB2   IBM APGO Web Wire
+   |     |        |               |            |
+   +-----+--------+-------+-------+------------+
+                          |  ADF copy activities: CDC / delta extracts,
+                          |  watermarks, metadata-driven control tables
+                          v
+              ADLS Gen2 landing zone (raw files)
+                          |
+                          v
+   BRONZE  raw, append-only Delta, audit + load-date columns
+                          |   PySpark: dedupe, conform keys, SCD2 history
+                          v
+   SILVER  conformed finance entities: GL, ledgers, cost centers, hierarchies
+                          |   KPI logic: P&amp;L, Budget vs Actual, expense forecast
+                          v
+   GOLD    star schemas + aggregates, liquid-clustered on query keys
+                          |
+                          v
+   Semantic layer: Power BI model (or UC metric views / Dremio-Denodo)
+                          |
+                          v
+   CFO / Executive Committee dashboards
+
+  Orchestration: ADF pipelines + Lakeflow Jobs, sequenced end to end by
+  Redwood RunMyJobs, which also triggers the Power BI dataset refresh.</code></pre>
+      <p><strong>Customer questions you will get:</strong> "Why Bronze at all - why not load straight to reporting tables?" (replay, audit, decoupling source quirks from business logic). "How fresh is this?" (batch SLA driven by ERP close cycles; show where you would swap ADF triggers for streaming tables if the SLA tightens). "Where does the semantic layer live - Power BI, Dremio/Denodo, or UC metric views?" (have a fit-gap answer: Power BI models for a Microsoft-standard estate, a virtualization layer when many BI tools must share logic, UC metric views - GA as of 2026 - when you want metrics governed next to the data).</p>
+
+      <div class="callout story">This diagram is your day job. At ADM you lead Finance R2R analytics delivery end to end: Bronze/Silver/Gold medallion pipelines on Azure Databricks and ADF integrating JDE, SAP, HFM, IBM DB2, and IBM APGO Web Wire into Delta Lake under Unity Catalog governance, with P&amp;L, Budget vs Actual, Expense Forecasting, EHS, and Capital Allocation KPI frameworks consumed at CFO and Executive Committee level. When you draw the batch reference architecture, you are not reciting a slide - narrate the real decisions: CDC versus full extracts per source, SCD design in Silver, RunMyJobs as the enterprise scheduler wrapping ADF, Databricks Jobs, and Power BI refresh into one dependency chain.</div>
+
+      <h2>Streaming reference architecture</h2>
+      <p>Same planes, faster heartbeat. Be transparent that your production delivery has been batch and near-real-time via orchestration - streaming-native Databricks (Auto Loader, streaming tables in Spark Declarative Pipelines) is study and lab depth for you, so frame it as pattern fluency, not war stories.</p>
+<pre><code>  Devices / apps / ERP events
+        |                       |
+        v                       v
+  Azure Event Hubs        Files dropped to ADLS Gen2
+  (Kafka-compatible)            |
+        |                       v
+        |                  Auto Loader (incremental file discovery)
+        +-----------+-----------+
+                    v
+  Streaming tables (Lakeflow Spark Declarative Pipelines)
+  Bronze stream -&gt; Silver (expectations, dedupe, watermark joins)
+                    |
+                    v
+  Near-real-time GOLD (materialized views / aggregates)
+                    |
+        +-----------+------------+
+        v                        v
+  AI/BI dashboards          Alerts (DBSQL alerts, webhooks)
+  on a DBSQL warehouse      and downstream APIs</code></pre>
+      <p>Key talking points: Auto Loader for files versus Event Hubs/Kafka for true event streams (and Zerobus Ingest when producers can write directly to the lakehouse); exactly-once via checkpoints and idempotent sinks; <code>availableNow</code> triggers to run streaming logic on a batch schedule - the cheapest way to keep one codebase while SLAs evolve.</p>
+      <p><strong>Customer questions you will get:</strong> "Do we really need streaming?" (push back with the cost-of-latency question; most finance use cases are happy at 15-minute micro-batch). "What does this cost versus batch?" (continuous clusters versus triggered serverless pipelines). "How do late events affect our numbers?" (watermarks, and a reconciliation job in the operations plane).</p>
+
+      <h2>ML reference architecture</h2>
+<pre><code>  Silver/Gold Delta tables
+        |
+        v
+  Feature pipelines (Lakeflow Jobs) -&gt; UC feature tables
+        |
+        v
+  Training (MLflow 3: experiments, model registry in UC)
+        |
+        v
+  Mosaic AI Model Serving (real-time endpoint or batch scoring)
+        |
+        v
+  Inference tables -&gt; Lakehouse Monitoring (drift, quality)
+        |
+        +--&gt; alerts -&gt; retraining job (closing the loop)</code></pre>
+      <p>The architect's framing: ML is the same lakehouse with two extra loops - a feature loop (features computed once, governed in UC, reused online and offline) and a feedback loop (inference tables monitored for drift, triggering retraining). Models registered in Unity Catalog get the same lineage and access control as tables, which is the governance answer customers want to hear.</p>
+      <p><strong>Customer questions you will get:</strong> "How do we stop training/serving skew?" (one feature definition, served from the feature store, not re-implemented in the app). "Who approves a model for prod?" (UC model aliases plus CI gates in the promotion pipeline). "Real-time or batch scoring?" (decide on consumer latency, not fashion - batch scoring into a Gold table covers most BI-adjacent use cases).</p>
+
+      <h2>GenAI / RAG reference architecture - pointer</h2>
+      <p>The GenAI blueprint (Mosaic AI Vector Search, LLM endpoints behind a gateway, AI/BI Genie for SQL-grounded answers, agent evaluation with MLflow 3, Databricks Apps for the UI) gets its own module - see <a href="rsa-genai.html">GenAI on Databricks</a>. Architecturally it is the serving plane extended with retrieval and generation, governed by the same UC band; you have shipped this pattern in production at ADM, so module 04 is where that story lives.</p>
+
+      <h2>Cross-cutting: DR, security perimeter, environment promotion</h2>
+      <h3>HA / DR basics</h3>
+      <p>Start the DR conversation with two numbers, not products: <strong>RTO</strong> (how long can you be down) and <strong>RPO</strong> (how much data can you lose). Then map tiers:</p>
+      <table>
+        <thead>
+          <tr><th>Tier</th><th>Pattern</th><th>Approx. RTO/RPO posture</th><th>Cost profile</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Backup and restore</td><td>GRS/RA-GRS storage replication; Deep Clone snapshots of critical Delta tables to a paired-region storage account; IaC to rebuild the workspace</td><td>Hours-to-day RTO; RPO = clone/replication cadence</td><td>Low</td></tr>
+          <tr><td>Pilot light</td><td>Secondary workspace pre-provisioned in the Azure paired region; UC objects and jobs deployed there via the same Bundles; data synced by scheduled Deep Clone or Delta Sharing</td><td>RTO in hours; RPO = sync cadence</td><td>Medium</td></tr>
+          <tr><td>Warm/active standby</td><td>Both regions continuously loaded (dual ingestion or near-continuous replication); traffic switch is a DNS/orchestration change</td><td>RTO in minutes; near-zero RPO</td><td>High - usually only for serving-critical workloads</td></tr>
+        </tbody>
+      </table>
+      <p>Two nuances that separate you from a slide-reader: the UC metastore is regional, so the DR region needs its own metastore with grants and objects recreated by code - which is itself an argument for everything-as-code; and Delta Sharing can act as a low-friction replication channel for the handful of Gold tables that genuinely carry the business, instead of replicating the whole lake.</p>
+
+      <div class="callout interview"><strong>"A customer asks for zero data loss and instant failover for their entire lakehouse. How do you respond?"</strong> Outline: (1) Reframe - zero/zero across everything is an unbounded budget; ask for RTO/RPO per workload tier. (2) Segment - usually a handful of Gold tables and serving endpoints are tier 1; Bronze can be replayed from sources. (3) Propose - paired-region workspace as code, Deep Clone or Delta Sharing for tier-1 tables, GRS for the rest, documented runbook with an actually-rehearsed failover test. (4) Quantify - show the cost curve per tier so the business chooses with eyes open. Saying "I would test the failover quarterly" is worth more than any diagram.</div>
+
+      <h3>Security perimeter checklist</h3>
+      <ul>
+        <li>VNet injection plus secure cluster connectivity (no public IPs); back-end and front-end Private Link.</li>
+        <li>Private endpoints and disabled public network access on ADLS Gen2 and Key Vault; UDR egress through the hub firewall.</li>
+        <li>All storage access via UC storage credentials on the access connector's managed identity - no account keys, no mounts.</li>
+        <li>Entra ID SSO, SCIM group sync, no workspace-local users; cluster policies and personal-access-token controls.</li>
+        <li>Row filters / column masks for sensitive domains; audit via system tables shipped to the SIEM.</li>
+        <li>IP access lists or front-end Private Link for the UI; Network Connectivity Configurations for serverless egress.</li>
+      </ul>
+
+      <h3>Environment promotion</h3>
+      <p>The promotion story ties the whole module together: code moves, data does not. One repo, one bundle definition with dev/test/prod targets, deployed by Azure DevOps pipelines into per-environment workspaces and catalogs; jobs, pipelines, and grants are all declared in code, so the DR region is just one more deployment target. As of mid-2026 the official name is Declarative Automation Bundles, but the workflow is the familiar <code>databricks bundle validate / deploy / run</code>.</p>
+
+      <div class="callout tip">In every architecture review, end on the operations plane: who gets paged, what the runbook says, how cost shows up in system tables. Your ADM hypercare and Azure DevOps runbook discipline is a differentiator here - most candidates draw boxes; few can describe what happens at 2 a.m. when the load fails before close.</div>
+    </article>
+
+    <div class="pagenav"><a href="rsa-migrations.html"><span class="label">Previous</span>Migration Playbooks</a><a class="next" href="rsa-genai.html"><span class="label">Next</span>GenAI on Databricks</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

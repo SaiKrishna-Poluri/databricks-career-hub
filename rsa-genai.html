@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GenAI on Databricks · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="rsa-track.html">Resident Solutions Architect Track</a> / GenAI on Databricks</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge rsa">RSA Track · Module 04</span>
+        <h1>GenAI on Databricks</h1>
+        <p class="lede">Mosaic AI end to end - anchored to the three agents you have already shipped to production at ADM.</p>
+      </header>
+
+      <p>This is your differentiator module. Most candidates at every level can recite RAG theory; very few have shipped GenAI to production with real users, real security constraints, and real adoption pressure. You have: three agents over HR data at ADM, live in a Databricks App, governed by Unity Catalog. Your job here is to map what you built onto the current Mosaic AI vocabulary so you can talk about it the way an RSA would advise a customer - components, trade-offs, evaluation, governance - not the way a demo talks about itself.</p>
+
+      <h2>The Mosaic AI stack, by its current names</h2>
+      <p>Naming has moved fast. As of mid-2026, this is the map you should speak from. Notice how each piece corresponds to something concrete in your ADM build - that mapping is what makes your answers land.</p>
+      <table>
+        <thead>
+          <tr><th>Component</th><th>What it is</th><th>Where it shows up in your ADM build</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Mosaic AI Model Serving</strong></td><td>One endpoint abstraction for custom models, foundation models, and external models. REST + low-latency serving, with inference tables for payload logging.</td><td>The LLM endpoints behind the Policy RAG assistant.</td></tr>
+          <tr><td><strong>Foundation Model APIs</strong></td><td>Databricks-hosted models on pay-per-token or provisioned throughput. Pay-per-token for prototyping; provisioned throughput for predictable latency and cost at scale.</td><td>Embedding and chat endpoints for retrieval and answer generation.</td></tr>
+          <tr><td><strong>External models / AI Gateway</strong></td><td>Govern third-party LLMs (Azure OpenAI, Anthropic, etc.) behind the same endpoint abstraction: rate limits, payload logging, fallbacks. Naming shifted recently: the legacy "Mosaic AI Gateway" features live on serving endpoints, while the newer governance control plane is "Unity AI Gateway" (Beta as of mid-2026) - check current docs before quoting names to a customer.</td><td>The pattern you would recommend when a customer insists on a specific external model but still wants central governance.</td></tr>
+          <tr><td><strong>Mosaic AI Vector Search</strong></td><td>Managed vector index that syncs from a Delta table, with hybrid keyword + vector retrieval.</td><td>The policy-document chunk index behind the RAG assistant.</td></tr>
+          <tr><td><strong>AI/BI Genie</strong></td><td>Natural-language Q&amp;A over curated structured data; GA since June 2025. Generates and shows SQL.</td><td>The Corporate Headcount &amp; Salaries Data Agent.</td></tr>
+          <tr><td><strong>Agent Framework / Agent Bricks</strong></td><td>Code-first agent authoring (Agent Framework) versus declarative, task-first agent building (Agent Bricks, Beta since June 2025 and the flagship direction). Agent Evaluation functionality has largely converged into MLflow 3.</td><td>Your router agent is the code-first pattern; know Agent Bricks well enough to position it.</td></tr>
+          <tr><td><strong>MLflow 3</strong></td><td>GA, redesigned for GenAI: tracing/observability for agents running anywhere, evaluation harness with LLM judges, prompt registry.</td><td>How you would harden evaluation and tracing on your agents going forward.</td></tr>
+          <tr><td><strong>Databricks Apps</strong></td><td>Hosted, governed web apps (Streamlit, Gradio, Dash, Flask...) running next to the data with UC-aware auth.</td><td>The Streamlit UI that hosts all three agents.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>RAG done properly</h2>
+      <p>A production RAG system is a data engineering problem wearing an AI costume - which is exactly why your background is an advantage. Walk it as a pipeline:</p>
+
+      <h3>1. Ingestion and chunking</h3>
+      <p>Documents land in a Delta table first - raw text plus metadata (source path, document title, section, effective date, owner). Chunking is where most quality is won or lost: chunk along document structure (headings, sections, clauses) rather than fixed token windows, keep chunks self-contained, and carry metadata on every chunk so retrieval can filter and citations can point somewhere real. For policy documents, a section-level chunk with the policy name prepended retrieves far better than an arbitrary 512-token slice.</p>
+
+      <h3>2. Embedding pipeline: Delta to Vector Search</h3>
+      <p>The clean pattern is a <strong>Delta Sync Index</strong>: Vector Search watches a source Delta table (Change Data Feed enabled) and keeps the index current - embeddings computed server-side by an embedding endpoint. Triggered sync for content that changes on a schedule (policies), continuous for fresher needs.</p>
+      <pre><code>from databricks.vector_search.client import VectorSearchClient
+
+vsc = VectorSearchClient()
+index = vsc.create_delta_sync_index(
+    endpoint_name="hr-vs-endpoint",
+    index_name="hr.policies.policy_chunks_idx",
+    source_table_name="hr.policies.policy_chunks",   # Delta table, CDF enabled
+    pipeline_type="TRIGGERED",                       # or CONTINUOUS
+    primary_key="chunk_id",
+    embedding_source_column="chunk_text",
+    embedding_model_endpoint_name="databricks-gte-large-en",
+)</code></pre>
+      <p>The architectural point to make: because the index syncs from Delta, the document corpus inherits the same lineage, governance, and pipeline discipline as every other table in the lakehouse. No side-channel vector database to govern separately.</p>
+
+      <h3>3. Hybrid retrieval, grounding, citations</h3>
+      <ul>
+        <li><strong>Hybrid retrieval</strong> - combine vector similarity with keyword matching. Policy text is full of exact terms ("FMLA", form numbers, policy codes) that pure semantic search fumbles; hybrid mode catches both.</li>
+        <li><strong>Grounding</strong> - the prompt instructs the model to answer only from retrieved chunks and to say "I don't know" otherwise. The retrieved context is the contract.</li>
+        <li><strong>Citations</strong> - return the source document and section with every answer. This is the unstructured-data twin of Genie showing its SQL: the user can verify, so the user can trust.</li>
+      </ul>
+
+      <div class="callout story">
+        <p>The Employee Policy RAG Assistant at ADM is your concrete version of all of this: policy documents chunked into Delta, synced into Mosaic AI Vector Search, answered through LLM endpoints - and every answer carries citations back to the source policy. When an interviewer asks "how do you handle hallucination?", you don't theorize: HR questions touch leave, pay, and compliance, so you made citation non-negotiable and grounded answers strictly in retrieved policy text. An uncited answer about parental leave is a liability, not a feature.</p>
+      </div>
+
+      <h3>4. Evaluation: the part that separates shipped from demoed</h3>
+      <ul>
+        <li><strong>Golden set</strong> - a curated table of real questions with expected facts and the document that should ground each answer. Sourced from the actual users (HR, in your case), not invented by engineers.</li>
+        <li><strong>LLM-as-judge</strong> - scorers grade correctness, groundedness, relevance, and safety at a scale humans can't. Calibrate the judge against a sample of human labels before you trust it.</li>
+        <li><strong>MLflow 3 tracing</strong> - every production request traced end to end (retrieval hits, prompts, tokens, latency), so when an answer is wrong you can see whether retrieval missed or generation drifted. The former Agent Evaluation tooling now lives here.</li>
+      </ul>
+      <pre><code>import mlflow
+from mlflow.genai.scorers import Correctness, RelevanceToQuery, Safety
+
+results = mlflow.genai.evaluate(
+    data=golden_set,            # question, expected_facts, source_doc
+    predict_fn=policy_rag_agent,
+    scorers=[Correctness(), RelevanceToQuery(), Safety()],
+)
+# Gate releases on these scores; rerun on every prompt or index change.</code></pre>
+
+      <div class="callout warn">
+        <p><strong>The demo-RAG trap.</strong> A weekend RAG demo and a production RAG system look identical in a screenshot. The differences: fixed-size chunking with no metadata (retrieval quality collapses on real corpora), no golden set (so "it seems better" is the entire QA process), a stale index because nobody owns the sync, and no tracing (so the first bad answer in front of a VP is undebuggable). If you can name these failure modes unprompted, you sound like someone who has been burned by them - which is the point.</p>
+      </div>
+
+      <h2>Genie spaces: NL analytics over structured data</h2>
+      <p>RAG answers "what does the document say?"; AI/BI Genie answers "what does the data say?" - natural language to SQL over curated tables. The craft is in the word <em>curated</em>:</p>
+      <ul>
+        <li><strong>Small, deliberate scope.</strong> A Genie space over five well-modeled gold tables beats one over fifty raw tables every time. Ambiguity is the enemy of text-to-SQL.</li>
+        <li><strong>Semantics as instructions.</strong> Column descriptions, business definitions ("headcount = active employees as of snapshot date"), join hints, and example question/SQL pairs teach Genie your domain.</li>
+        <li><strong>Trusted assets.</strong> Pre-approved, parameterized queries and UC SQL functions for the high-stakes questions. When a question matches one, Genie runs the vetted logic and labels the answer trusted - deterministic answers for the questions that must never be wrong.</li>
+        <li><strong>Show the SQL.</strong> Genie exposes its generated query. Analysts read it, verify the filters and joins, and correct the space's instructions when it's wrong. Transparency turns skeptics into curators.</li>
+      </ul>
+
+      <div class="callout story">
+        <p>Your Corporate Headcount &amp; Salaries Data Agent is a Genie space over PeopleSoft and SAP labor data - and you deliberately kept the generated SQL visible to users. That decision is a story about <em>trust engineering</em>: HR analysts shouldn't have to accept a black box telling them headcount numbers that feed real decisions, but they can accept an assistant whose work they can check. The design bet was that verifiability earns adoption. That's a consulting insight, not just a feature choice - use it.</p>
+      </div>
+
+      <div class="callout tip">
+        <p>Treat a Genie space like a product, not a config. Review the question log weekly: wrong answers become new instructions or trusted assets; unanswerable questions reveal missing gold tables. Curation is an ongoing loop, and "who owns the Genie space?" is a question that instantly elevates a customer conversation.</p>
+      </div>
+
+      <h2>Agent patterns: routing, tools, guardrails</h2>
+      <p>Real questions don't sort themselves into "structured" and "unstructured" - users ask whatever they ask. Hence the supervisor/router pattern:</p>
+      <ul>
+        <li><strong>Intent routing.</strong> A lightweight LLM classification step decides whether a question is analytical ("how many engineers in Texas?" → Genie) or policy/knowledge ("what's the relocation policy?" → RAG), then dispatches. Keep the router cheap and fast; spend tokens in the specialist agents.</li>
+        <li><strong>Tool calling.</strong> Expose capabilities as Unity Catalog functions so the agent's tools are governed, versioned, and permissioned objects - the same governance story as tables. Genie spaces themselves can be invoked as a tool by a parent agent.</li>
+        <li><strong>Guardrails.</strong> Constrain scope in the system prompt ("you answer HR policy and workforce analytics questions only"), refuse out-of-domain requests explicitly, apply safety filters and rate limits at the gateway layer, and never let the agent see data its caller couldn't query directly.</li>
+      </ul>
+      <p>Position Agent Bricks correctly when asked: it's the declarative, task-first way to build this class of agent (describe the task, bring the data, let the platform optimize), in Beta since mid-2025. You built yours code-first with explicit routing - which means you can explain what the abstraction is doing under the hood. That's the stronger position, not the weaker one.</p>
+
+      <h2>Databricks Apps: where the UI lives</h2>
+      <p>Databricks Apps hosts custom web UIs - Streamlit, Gradio, Dash, Flask - inside the platform: serverless hosting, workspace identity, UC-aware authorization, no separate web infrastructure to stand up or secure. For your build it meant the Streamlit front end, the embedded Genie space, and Databricks dashboards all live behind one login, one permission model, and zero extra infrastructure tickets. The alternative - an external web app holding service credentials into the lakehouse - is a security review you no longer have to have.</p>
+
+      <h2>Governing GenAI: where most deployments stall</h2>
+      <p>The single most important sentence in your governance story: <strong>the agent never has more privilege than the person asking.</strong></p>
+      <ul>
+        <li><strong>One catalog for everything.</strong> Models, serving endpoints, vector indexes, UC functions, and the underlying tables are all Unity Catalog objects with owners, grants, lineage, and audit. There is no parallel "AI permissions" system to drift out of sync.</li>
+        <li><strong>Row- and column-level security flows through.</strong> Because Genie executes SQL with the asking user's identity, RLS and column masks apply to agent answers exactly as they apply to direct queries.</li>
+        <li><strong>Audit and payload logging.</strong> Inference tables on serving endpoints capture request/response payloads to Delta; gateway-level usage tracking and UC audit logs cover who asked what, when. Mind retention policy when payloads contain sensitive prompts.</li>
+        <li><strong>Cost controls.</strong> Rate limits per endpoint and consumer at the gateway, pay-per-token while iterating, provisioned throughput once load is predictable, and a budget owner named before launch - the FinOps discipline you already practice, applied to tokens.</li>
+      </ul>
+
+      <div class="callout story">
+        <p>Your strongest security story: the headcount agent answers over <em>salary data</em>. You enforced Unity Catalog row- and column-level permissions on the underlying HR tables, so the same question - "average salary in my org" - returns what each user is entitled to see and nothing more. Compensation detail for authorized HR users; masked or filtered results for everyone else. No prompt engineering involved: security lives in the data layer, where it can't be jailbroken. When an interviewer or a customer CISO asks "how do you stop the agent leaking sensitive data?", this is a production answer, not a slideware answer.</p>
+      </div>
+
+      <h2>Case study: three agents, one architecture</h2>
+      <p>Present your ADM GenAI work as one coherent system, not three disconnected projects.</p>
+      <pre><code>                    HR users (UC identity)
+                            |
+              Databricks App  -  Streamlit UI
+        (embedded Genie space + AI/BI dashboards)
+                            |
+                  Multi-Agent Assistant
+                 (LLM intent router agent)
+                  /                    \
+   "How many analysts          "How much parental
+    joined in Q1?"              leave do I get?"
+          |                            |
+   Genie Space agent            Policy RAG agent
+   PeopleSoft + SAP             Vector Search index
+   labor data (gold)            policy_chunks (Delta sync)
+   SQL shown to user            LLM endpoint, answers
+          |                     with citations
+          \                    /
+           Unity Catalog governance
+   row/column security, audit, lineage - one
+   permission model across both data paths</code></pre>
+      <ol>
+        <li><strong>Structured path.</strong> The Headcount &amp; Salaries agent is a curated Genie space over PeopleSoft and SAP labor data, generated SQL exposed for verification, RLS/column masks enforcing who sees compensation.</li>
+        <li><strong>Unstructured path.</strong> The Policy RAG assistant retrieves from a Vector Search index synced from Delta and answers through LLM endpoints with citations to the source policy.</li>
+        <li><strong>Router.</strong> The combined assistant classifies intent and dispatches, so users get one front door instead of learning which bot does what.</li>
+        <li><strong>Surface.</strong> Everything ships as a Databricks App with a custom Streamlit UI, embedded Genie space, and dashboards - one governed entry point, no external hosting.</li>
+        <li><strong>Governance.</strong> Unity Catalog underneath both paths: identical permissions whether a user queries directly, asks Genie, or asks the router.</li>
+      </ol>
+
+      <div class="callout interview">
+        <p><strong>"Walk me through a GenAI system you've taken to production."</strong> Structure: (1) the user problem - HR teams needed self-service answers across structured workforce data and unstructured policy documents; (2) the architecture - the diagram above, narrated structured path, unstructured path, router, app surface; (3) the two hard problems - trust (solved with visible SQL and citations) and security (solved with UC row/column permissions so the agent inherits the asker's entitlements); (4) operations - what you'd deepen next, such as MLflow 3 tracing and a formal golden-set gate on every prompt or index change. Four beats, under three minutes, every claim concrete.</p>
+      </div>
+
+      <div class="callout interview">
+        <p><strong>"How do you evaluate whether an agent is good enough to ship?"</strong> Outline: define "good" per backend - for text-to-SQL, execution accuracy against curated question/SQL pairs and trusted-asset coverage of the must-be-right questions; for RAG, groundedness, correctness, and citation accuracy against a golden set sourced from real user questions. Use LLM judges (MLflow 3 scorers) for scale, calibrated against human labels. Gate releases on scores, trace everything in production, and feed bad production answers back into the golden set. Close with the differentiator: evaluation is a regression suite, not a launch ritual - it reruns on every change.</p>
+      </div>
+
+      <h2>Talking about GenAI without hype</h2>
+      <p>The fastest way to lose credibility in an RSA interview is breathless GenAI talk. The fastest way to build it is to sound like someone who has operated this in production. Lead with evaluation rigor, security inheritance, and user trust mechanics; mention models last. Say "we made the agent show its work because verifiability drives adoption" rather than "we leveraged cutting-edge AI." And be precise about what's yours: agents, Genie, Vector Search, Apps, and UC security are production experience; Agent Bricks and Unity AI Gateway you should discuss fluently as current platform direction, not claim as shipped work.</p>
+
+      <h3>Executive questions you should expect - and good answers</h3>
+      <table>
+        <thead>
+          <tr><th>Exec question</th><th>Weak answer</th><th>Strong answer</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>"What about hallucination?"</td>
+            <td>"The models are getting much better."</td>
+            <td>"We don't rely on the model being right - we constrain it. Structured questions run real SQL the user can read; document questions are grounded in retrieved text with citations; high-stakes questions hit pre-approved trusted queries. And we measure groundedness against a golden set before and after every change."</td>
+          </tr>
+          <tr>
+            <td>"Is our data safe? Does it train someone's model?"</td>
+            <td>"The vendor says it's secure."</td>
+            <td>"Access control lives in Unity Catalog, beneath the agent - the agent can only see what the asking user could query directly, including row- and column-level rules. Endpoints are governed with payload logging and audit; external models, if used, sit behind the gateway under the same controls. Your data isn't used to train foundation models."</td>
+          </tr>
+          <tr>
+            <td>"Where's the ROI?"</td>
+            <td>"AI will transform everything."</td>
+            <td>"Pick a workflow with measurable toil - questions a team answers manually today - and instrument it: questions answered in self-service, deflected requests, time-to-answer, and weekly active users. Run pay-per-token until usage justifies provisioned throughput, so cost scales with proven adoption rather than ahead of it."</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">
+        <p>In customer conversations, "show the SQL / show the citation" is your universal trust answer, and "the agent inherits the user's permissions" is your universal security answer. Both come from things you actually shipped, both survive hostile follow-up questions, and together they answer roughly half of everything an executive will ask about GenAI.</p>
+      </div>
+
+      <p>Where to go next: <a href="rsa-architectures.html">Reference Architectures</a> places this agent stack inside the broader platform patterns you'll be asked to whiteboard, and <a href="rsa-consulting.html">Consulting Craft</a> covers how to run the discovery conversations where these exec questions actually come up.</p>
+    </article>
+
+    <div class="pagenav"><a href="rsa-architectures.html"><span class="label">Previous</span>Reference Architectures</a><a class="next" href="rsa-consulting.html"><span class="label">Next</span>Consulting Craft</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Migration Playbooks · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="rsa-track.html">Resident Solutions Architect Track</a> / Migration Playbooks</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge rsa">RSA Track · Module 02</span>
+        <h1>Migration Playbooks</h1>
+        <p class="lede">Hadoop, EDW, and Snowflake-era estates - the engagements RSAs live in, played out as repeatable plays.</p>
+      </header>
+
+      <h2>Why migrations are the RSA's bread and butter</h2>
+      <p>RSAs are billable Professional Services consultants, and a large share of PS engagements are platform migrations: a customer has committed to the Databricks Data Intelligence Platform and needs someone embedded who can move a real estate - safely, on a timeline, with the business still running. In the interview loop, the project-delivery round and the panel presentation both reward people who can narrate a migration end to end: not just the target architecture, but the sequencing, the reconciliation, and the politics. This page gives you that narrative as a set of plays.</p>
+
+      <h2>The engagement arc</h2>
+      <p>Every migration, regardless of source platform, follows the same arc. Internalize it as a six-phase spine you can hang any war story on.</p>
+      <ol>
+        <li><strong>Discovery and assessment.</strong> Build an estate inventory: tables, jobs, scripts, reports, users, and the schedules that bind them. Profile workloads - which jobs burn the compute, which run daily vs. quarterly, which have failed silently for months. Map dependencies (job-to-job, table-to-report, system-to-system) because the dependency graph, not the table count, determines sequencing. Output a TCO model and business case: current platform cost, projected Databricks cost, migration effort, and the value unlocked (retired licenses, faster delivery, AI use cases the old stack cannot serve).</li>
+        <li><strong>Wave planning.</strong> Pick a pilot that is real but contained - one business domain with a visible owner and a measurable outcome. Then group the remaining estate into waves by domain, not by technology layer, so each wave delivers something a business stakeholder can sign off. Plan the coexistence period explicitly: both platforms run in parallel, data flows are dual-fed or replicated, and there is a written rule for which platform is the system of record for what, at every point in time.</li>
+        <li><strong>Execution.</strong> Convert code, replatform data, rebuild orchestration. Automate the repetitive 80 percent (DDL conversion, ingestion scaffolding) and spend human effort on the gnarly 20 percent (stored procedures, hand-tuned SQL, business logic nobody documented).</li>
+        <li><strong>Validation.</strong> Parallel-run old and new, reconcile outputs automatically, and publish the evidence. This phase earns the cutover decision - see the reconciliation section below.</li>
+        <li><strong>Cutover.</strong> Flip consumers per wave: repoint reports, switch schedules, freeze writes on the legacy side. Keep a rollback path defined and rehearsed for at least the first cycle.</li>
+        <li><strong>Decommission.</strong> The phase customers skip and then pay for. Archive what compliance requires, kill the legacy schedules, reclaim the licenses, and book the savings - because the TCO case from phase 1 is only true once the old platform actually stops costing money.</li>
+      </ol>
+
+      <div class="callout tip">In discovery, query-log mining beats interviews. Pull the last 90 days of query and job logs from the source platform before you talk to anyone: it tells you which of the 800 tables are actually read (often under half), which users are real consumers, and which "critical" job has been failing quietly since March. Then use the interviews to explain the logs, not replace them.</div>
+
+      <h2>Play 1: Hadoop to Databricks</h2>
+      <p>The classic. On-prem Hadoop clusters are aging out - hardware leases expire, vendor support has consolidated, and the talent pool is shrinking. The play is a component-by-component remap plus a code uplift.</p>
+
+      <table>
+        <thead>
+          <tr><th>Hadoop component</th><th>Databricks target</th><th>What to watch</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>HDFS</td><td>ADLS Gen2 / S3 object storage</td><td>Replatform with DistCp or cloud-native transfer; fix small-file debt during the move, not after.</td></tr>
+          <tr><td>Hive Metastore + Hive tables</td><td>Unity Catalog + Delta Lake</td><td>Convert to Delta; land governance (see <a href="de-unity-catalog.html">Unity Catalog</a>) in wave 1, not as a retrofit.</td></tr>
+          <tr><td>HiveQL / Impala queries</td><td>Databricks SQL (Photon)</td><td>Mostly mechanical; watch nonstandard functions and implicit type behavior.</td></tr>
+          <tr><td>Spark on YARN</td><td>Databricks Runtime / serverless compute</td><td>Code ports easily; cluster sizing assumptions do not - retune, don't transcribe.</td></tr>
+          <tr><td>Oozie workflows</td><td>Lakeflow Jobs</td><td>Rebuild DAGs as job tasks with dependencies; Oozie XML is documentation, not a migration source you can trust blindly.</td></tr>
+          <tr><td>Sqoop imports</td><td>Lakeflow Connect or ADF copy activities</td><td>Managed connectors where sources are supported; ADF or JDBC ingestion otherwise.</td></tr>
+          <tr><td>HBase</td><td>Depends on the workload</td><td>Analytic point lookups: Delta with liquid clustering. True OLTP/serving: Lakebase Postgres (GA on AWS as of early 2026, Azure in preview - check current status) or keep a purpose-built KV store. Don't force-fit.</td></tr>
+          <tr><td>MapReduce / Pig</td><td>Rewrite in Spark</td><td>No mechanical path; usually small in number, large in archaeology.</td></tr>
+        </tbody>
+      </table>
+
+      <p><strong>Spark code uplift</strong> is the deceptively easy part. Spark-on-YARN code generally runs on Databricks with minor changes, which tempts teams into lift-and-shift. Resist it: configurations tuned for static on-prem clusters (executor counts, shuffle partitions, memory fractions) are wrong on elastic cloud compute, and hardcoded HDFS paths, Hive Metastore calls, and RDD-era APIs all need cleanup. Treat the migration as the moment to modernize to DataFrame/SQL APIs and let the platform (Photon, adaptive query execution) do the optimization the old code did by hand.</p>
+
+      <div class="callout warn">Hadoop estates carry two kinds of inherited performance debt that will follow you to the cloud if you let them. <strong>Small files</strong>: years of hourly ingest into HDFS produces millions of kilobyte-scale files; copy them as-is and your shiny new platform reads slowly and bills you for the privilege. Compact during replatforming and rely on predictive optimization / OPTIMIZE going forward. <strong>Skew</strong>: jobs that "worked" on-prem often hid skew behind overprovisioned static clusters; on autoscaling compute the straggler tasks become visible as cost. Profile the top jobs, fix the skew (see <a href="de-performance.html">Performance &amp; Tuning</a>), and set the expectation with the customer that some jobs need rework, not just relocation.</div>
+
+      <div class="callout interview">
+        <p><strong>"A customer has 800 Hive tables, 200 Oozie workflows, and a hardware lease expiring in 14 months. How do you plan the migration?"</strong></p>
+        <p>Strong outline: (1) Discovery first - mine query and job logs; expect a long tail of dead tables and workflows, so the real scope is likely 300 tables and 80 workflows. (2) Anchor the plan to the lease date: work backward to a decommission deadline, with contingency. (3) Pilot one domain end to end - data, jobs, reports, users - to calibrate conversion velocity, then plan waves by business domain using measured throughput, not guesses. (4) Coexistence design: dual-run period per wave, system-of-record rules in writing. (5) Automate DDL and ingestion conversion; hand-craft only the genuinely complex jobs. (6) Reconciliation harness from day one; cutover per wave on evidence. (7) Decommission as a tracked workstream with the savings booked against the business case. Close by asking what the interviewer's customer cares about most - cost, risk, or the deadline - because that ordering changes the plan.</p>
+      </div>
+
+      <h2>Play 2: Legacy EDW to lakehouse</h2>
+      <p>Teradata, Oracle, SQL Server data warehouses, and increasingly first-generation cloud DWs like Synapse Dedicated SQL Pools. These estates are smaller in raw volume than Hadoop but denser in logic: decades of stored procedures, dialect-specific SQL, and a semantic/reporting layer the business actually runs on.</p>
+      <p><strong>Schema conversion</strong> is the easy layer - automated tools and conversion scripts handle DDL, type mapping, and constraint translation. Decide the target model deliberately: this is your chance to rationalize into a medallion structure (see <a href="rsa-architectures.html">Reference Architectures</a>) rather than photocopy a 20-year-old star schema, including its mistakes.</p>
+      <p><strong>Stored procedures</strong> are the hard layer. You have four honest strategies, and a real engagement uses all of them:</p>
+      <ul>
+        <li><strong>Translate</strong>: mechanical conversion to Databricks SQL scripting or PySpark for procedures that are mostly set-based SQL.</li>
+        <li><strong>Refactor</strong>: procedures that are really orchestration in disguise (loops over dates, conditional branching, error handling) become Lakeflow Jobs task graphs with idempotent SQL/PySpark steps - the logic moves up into the orchestrator where it belongs.</li>
+        <li><strong>Redesign</strong>: row-by-row cursor logic gets rethought as set-based transformations; this is where you add the most value and the most risk, so it gets the heaviest reconciliation.</li>
+        <li><strong>Retire</strong>: discovery always finds procedures nobody can explain feeding reports nobody opens. Retiring them is a deliverable, not a shortcut - get sign-off.</li>
+      </ul>
+      <p><strong>Dialect translation</strong> is mostly tractable because Databricks SQL has absorbed many warehouse idioms. Teradata's <code>QUALIFY</code>, for instance, ports directly; BTEQ's procedural scaffolding does not:</p>
+      <pre><code>-- Teradata BTEQ
+.LOGON tdprod/svc_etl;
+SEL acct_id, txn_dt, amt
+FROM fin.gl_detail
+QUALIFY ROW_NUMBER() OVER (PARTITION BY acct_id ORDER BY load_ts DESC) = 1;
+.IF ERRORCODE &lt;&gt; 0 THEN .GOTO ERREXIT;
+
+-- Databricks SQL: QUALIFY ports as-is
+SELECT acct_id, txn_dt, amt
+FROM fin.gl_detail
+QUALIFY ROW_NUMBER() OVER (PARTITION BY acct_id ORDER BY load_ts DESC) = 1;
+-- BT/ET transactions and .IF error branching do NOT port:
+-- restructure as idempotent MERGE steps with Lakeflow Jobs
+-- task dependencies and retry policies carrying the control flow.</code></pre>
+      <p><strong>The semantic and report layer</strong> decides whether the business calls the migration a success. Inventory every report, dashboard, cube, and extract reading the EDW; migrate the high-value ones to Power BI or AI/BI dashboards against Databricks SQL; and parallel-run the numbers, because a report that is fast but disagrees with last quarter's board pack is a failed migration in the eyes of the CFO.</p>
+
+      <div class="callout story">
+        <p>You have two citable EDW-adjacent migration data points. At <strong>Maersk</strong>, you migrated SSAS multidimensional cubes to Azure Analysis Services Tabular as part of the Fact-Based Reporting program - a textbook semantic-layer migration, the kind that demands model translation, validation against the old cubes, and keeping finance consumers whole while the engine underneath changes. You also moved managed tables to external tables for governance and cost control - a small story that shows you think about storage ownership and decommission economics. At the <strong>Port Authority</strong>, you migrated PATH Ridership analytics off legacy VBA and MS Access onto parameterized Azure Synapse pipelines with Power BI on top - the long-tail "shadow IT" workload every estate hides, and proof you can modernize the unglamorous end of an inventory, not just the headline warehouse.</p>
+      </div>
+
+      <h2>Play 3: SSIS/SSRS-era Microsoft estates</h2>
+      <p>This is your deep home turf - say so in interviews. The pattern: on-prem SQL Server databases, hundreds of SSIS packages doing ETL, SSRS for reporting, SQL Agent for scheduling. The Azure Databricks play: databases land in ADLS Gen2 as Delta via ADF or Lakeflow Connect ingestion; SSIS data-flow logic converts to PySpark or Databricks SQL (with ADF's SSIS Integration Runtime as a bridge for packages that must survive the transition unchanged); SSRS reports rebuild in Power BI or AI/BI dashboards; SQL Agent schedules become Lakeflow Jobs and ADF triggers. The trap is package count: 400 SSIS packages usually collapse into a few dozen parameterized, metadata-driven pipelines - which is exactly the metadata-driven ingestion pattern you built at Maersk and the Port Authority.</p>
+
+      <div class="callout story">
+        <p>Your origin story for this play is <strong>Microsoft itself</strong>: on the Worldwide Payment Services team (via Brillio, 2018-19), you migrated on-prem SQL Server and SSIS workloads to Azure SQL Database and ADF - using the SSIS Integration Runtime as the bridge - and moved SSRS reporting to Power BI, with dimensional models and SCD 0/1/2 handling intact. When an interviewer asks about Microsoft-estate migrations, you are not describing a pattern you read about; you ran this play inside Microsoft, on a payments domain where the numbers had to be right. Frame it as: same arc, smaller target - today you would land the same estate on Databricks with Unity Catalog instead of Azure SQL DB.</p>
+      </div>
+
+      <h2>Snowflake: coexistence and migration honesty</h2>
+      <p>Snowflake engagements are different in kind: the customer is not fleeing a dying platform, they are weighing two healthy ones. Your credibility - in the engagement and in the panel interview - depends on being honest about that.</p>
+      <table>
+        <thead>
+          <tr><th>Signal for migrating to the lakehouse</th><th>Signal for coexistence (and saying so)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Heavy Spark/Python data engineering and ML/GenAI workloads bolted awkwardly onto a SQL warehouse</td><td>Estate is overwhelmingly BI/SQL, well-governed, and the team is productive</td></tr>
+          <tr><td>Paying twice: a separate Spark platform feeding Snowflake, with data copied between them</td><td>Recent multi-year Snowflake commitment; migration savings cannot beat the contract math yet</td></tr>
+          <tr><td>Open-format strategy: wants Delta/Iceberg tables one engine cannot hold hostage</td><td>Migration capacity is consumed by higher-value work; revisit at renewal</td></tr>
+          <tr><td>Unified governance ambition across data, ML, and AI assets in one catalog</td><td>Only a niche workload fits Databricks today - land that workload, earn trust, expand later</td></tr>
+        </tbody>
+      </table>
+      <p>Coexistence is increasingly practical: Unity Catalog's managed Iceberg tables and Delta Sharing mean Databricks-produced data can serve Snowflake consumers in open formats without copy pipelines, as of mid-2026. A phased "Databricks for engineering and AI, Snowflake keeps BI - for now" architecture is often the truthful recommendation, and it routinely converts to a fuller migration once the cost and capability evidence accumulates.</p>
+
+      <div class="callout interview">
+        <p><strong>"The customer CFO asks: we already have Snowflake and it works - why migrate anything?"</strong> (Expect this in the panel simulation, with deliberate pushback.)</p>
+        <p>Strong outline: (1) Don't trash-talk - concede Snowflake is a good warehouse; you lose the room the moment you sound like a salesperson. (2) Reframe from product to workload: ask what their data engineering, streaming, and AI workloads run on today and what the combined bill and copy-pipeline overhead looks like. (3) Make the open-format argument: Delta/Iceberg under Unity Catalog means their data outlives any engine decision, including this one. (4) Propose the smallest honest step - one ML or engineering workload on Databricks, coexisting via open tables, measured on cost and delivery speed. (5) Give them a real exit: if the evidence does not show up, the coexistence architecture still stands on its own. Recommending coexistence when migration is not justified is what makes the migration recommendation believable when it is.</p>
+      </div>
+
+      <h2>Validation and reconciliation discipline</h2>
+      <p>Migrations are judged on one question: do the numbers match? Build the reconciliation harness in the pilot, run it every parallel-run cycle, and publish the results where stakeholders can see them. Layer the checks:</p>
+      <ul>
+        <li><strong>Structural</strong>: table and column inventory, data types, nullability - per object, automated.</li>
+        <li><strong>Volumetric</strong>: row counts per table per load cycle, with trend tracking so drift is visible.</li>
+        <li><strong>Aggregate</strong>: sums, mins/maxes, and distinct counts on key measures by business dimension.</li>
+        <li><strong>Financial</strong>: balances tied to the penny against the legacy system and, where it exists, the general ledger. Tolerance is a business decision made explicit - in finance it is usually zero.</li>
+        <li><strong>Row-level</strong>: hash-based comparison on sampled or full keys for the tables where aggregates can mask offsetting errors.</li>
+      </ul>
+      <pre><code>from pyspark.sql import functions as F
+
+KEYS = ["company_code", "account", "fiscal_period"]
+
+legacy_agg = legacy.groupBy(KEYS).agg(F.sum("amount").alias("legacy_amt"))
+lake_agg   = lake.groupBy(KEYS).agg(F.sum("amount").alias("lake_amt"))
+
+breaks = (
+    legacy_agg.join(lake_agg, KEYS, "full_outer")
+    .withColumn("diff",
+        F.coalesce("legacy_amt", F.lit(0)) - F.coalesce("lake_amt", F.lit(0)))
+    .filter(F.abs(F.col("diff")) &gt; 0.005)   # beyond half a cent = a break
+)
+# Persist every run to a recon Delta table; alert on breaks &gt; 0.
+# The published history IS the cutover evidence.</code></pre>
+      <p>Two disciplines make the harness trustworthy: <strong>full outer joins</strong>, so rows existing on only one side surface as breaks instead of vanishing; and <strong>timing alignment</strong>, so you compare equivalent load cycles - half of all "reconciliation failures" in a coexistence period turn out to be one side reading data the other has not loaded yet.</p>
+
+      <div class="callout story">
+        <p>Reconciliation is your strongest suit - lead with it. At <strong>ADM</strong>, you own Finance Record-to-Report analytics end to end: Bronze/Silver/Gold pipelines on Azure Databricks and ADF integrating JDE, SAP, HFM, IBM DB2, and IBM APGO Web Wire into Delta, feeding P&amp;L and Budget-vs-Actual KPIs consumed at Executive Committee and CFO level. Numbers at that altitude must tie to the penny against the source systems, every cycle - there is no "directionally correct" in R2R. At <strong>Maersk</strong>, the Fact-Based Reporting program meant reconciling SAP S/4HANA and AC-DOCA Universal Journal data through the lakehouse into finance reporting. When a migration interviewer asks how you would prove correctness, you can answer from the posture of someone whose daily work is audited by finance, not from a checklist.</p>
+      </div>
+
+      <h2>The risk register staples</h2>
+      <p>Every migration risk register contains the same recurring entries. Walk in with mitigations already drafted:</p>
+      <ul>
+        <li><strong>Hidden consumers.</strong> The Access database in marketing, the cron job in a forgotten VM, the partner extract nobody owns - all reading the legacy platform via paths discovery missed. Mitigation: query-log mining, network-level connection auditing on legacy endpoints, and a read-only "brownout" period before hard cutover so survivors reveal themselves loudly but recoverably.</li>
+        <li><strong>SLA regressions.</strong> Some workloads will be slower or costlier at first - hand-tuned warehouse queries especially. Mitigation: benchmark the top-N workloads in the pilot, set expectations in writing, and budget tuning time per wave instead of discovering it in hypercare.</li>
+        <li><strong>Security model translation.</strong> Legacy grants, roles, row-level security, and Kerberos/AD integrations do not map one-to-one onto Unity Catalog. Design the target privilege model deliberately - groups, catalogs/schemas, row filters and column masks - and migrate to it; transliterating ten years of accreted grants reproduces ten years of accreted mistakes.</li>
+        <li><strong>People and process change.</strong> DBAs become platform engineers, ETL developers become PySpark engineers, the operations runbook changes shape. Mitigation: enablement as a planned workstream, embedded pairing during waves, and runbooks plus hypercare handover as deliverables - the platform is only migrated when the customer can run it without you.</li>
+      </ul>
+
+      <div class="callout tip">In the panel presentation, naming the risk register unprompted is a differentiator. Most candidates present the happy-path architecture; the candidate who says "and here are the four risks I would log on day one, with mitigations" sounds like someone who has carried a cutover pager. You have - use the vocabulary of waves, parallel runs, breaks, and decommission dates.</div>
+    </article>
+
+    <div class="pagenav"><a href="rsa-role.html"><span class="label">Previous</span>The RSA Role, Decoded</a><a class="next" href="rsa-architectures.html"><span class="label">Next</span>Reference Architectures</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

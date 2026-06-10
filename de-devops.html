@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevOps on Databricks · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="de-track.html">Data Engineer Track</a> / DevOps on Databricks</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge de">DE Track · Module 09</span>
+        <h1>DevOps on Databricks</h1>
+        <p class="lede">Bundles, CI/CD, testing, and the production-operations discipline that separates senior candidates.</p>
+      </header>
+
+      <h2>Why this module carries senior-level weight</h2>
+      <p>Anyone can demo a notebook. Senior candidates are judged on whether they can take a pipeline from a developer's branch to a governed production workspace with tests, approvals, rollback, and monitoring — and keep it running. Interviewers probe this area because it cannot be faked from tutorials: you either have run production hypercare or you have not. You have. Your job on this page is to map the Azure DevOps discipline you actually practiced at ADM onto Databricks-native tooling — bundles, Git folders, system tables — so you can speak both dialects.</p>
+
+      <h2>Declarative Automation Bundles (formerly Databricks Asset Bundles)</h2>
+      <p>Bundles are the Databricks-native infrastructure-as-code unit for <em>workspace assets</em>: a project folder containing source code plus YAML that declares the jobs, pipelines, and other resources the code needs, deployable to any target environment with one CLI command. Naming note for interviews: <strong>Databricks Asset Bundles were renamed Declarative Automation Bundles in March 2026</strong>. The rename is non-breaking — the CLI command is still <code>databricks bundle</code> and the YAML schema is unchanged — but using the current name (and knowing the old one) signals you are up to date. Most practitioners still say "DABs" or just "bundles."</p>
+
+      <h3>Anatomy of databricks.yml</h3>
+      <p>One root <code>databricks.yml</code> defines the bundle; resource definitions can be split into included files. The key blocks:</p>
+      <ul>
+        <li><strong>bundle</strong> — the project name, used to namespace deployments.</li>
+        <li><strong>include</strong> — glob patterns pulling in additional YAML (e.g. <code>resources/*.yml</code>).</li>
+        <li><strong>variables</strong> — typed, defaultable values you can override per target or at the CLI (<code>--var="catalog=prod"</code>), so one definition serves every environment.</li>
+        <li><strong>resources</strong> — the assets the bundle manages: Lakeflow Jobs (the orchestrator formerly called Databricks Workflows), Lakeflow Spark Declarative Pipelines (the former DLT), model-serving endpoints, AI/BI dashboards, experiments, registered models, schemas, alerts, SQL warehouses, clusters, apps.</li>
+        <li><strong>targets</strong> — named environments (dev/staging/prod), each with its own workspace host, root path, run identity, and variable overrides. <code>mode: development</code> prefixes resource names with your username and pauses schedules so developers cannot collide; <code>mode: production</code> deploys clean names and enforces stricter validation, typically running as a service principal.</li>
+      </ul>
+<pre><code>bundle:
+  name: r2r_finance_pipelines
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Target Unity Catalog
+    default: fin_dev
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://adb-dev.azuredatabricks.net
+  staging:
+    workspace:
+      host: https://adb-stg.azuredatabricks.net
+    variables:
+      catalog: fin_staging
+  prod:
+    mode: production
+    workspace:
+      host: https://adb-prod.azuredatabricks.net
+    variables:
+      catalog: fin_prod
+    run_as:
+      service_principal_name: sp-r2r-deploy</code></pre>
+      <p>The lifecycle is three commands: <code>databricks bundle validate</code> (schema and reference checks, runnable in CI without touching a workspace), <code>databricks bundle deploy -t staging</code> (sync code and create/update declared resources in that target), and <code>databricks bundle run my_job -t staging</code> (trigger and wait, ideal for smoke tests). Deploys are idempotent — the bundle is the source of truth and drift is overwritten.</p>
+      <div class="callout tip">Honesty framing that works in your favor: your production deployments at ADM shipped through <strong>Azure DevOps pipelines</strong>, not bundles — bundles are study and lab knowledge for you. Say exactly that, then add that bundles solve the same problem you solved by hand: parameterized per-environment deployment with validation gates. Mapping a tool you know deeply onto one you have labbed is a senior move; pretending production experience you don't have is a disqualifier.</div>
+
+      <h2>Git folders and the source-control workflow</h2>
+      <p>Git folders (the feature long called Repos) clone a Git repository into the workspace so notebooks and source files are edited on real branches. The reference workflow: each engineer works in their own Git folder on a feature branch; commits and pushes happen from the workspace UI or local IDE; a pull request triggers CI; merge to main triggers deployment. Two production rules matter:</p>
+      <ul>
+        <li><strong>Nothing in production executes from a user's Git folder.</strong> Production code arrives via bundle deploy (or your CI artifact copy) as workspace files owned by a service principal. A service-principal-owned Git folder pinned to a release branch is the older pattern; bundles have largely superseded it.</li>
+        <li><strong>Keep logic in <code>.py</code> modules, not monolithic notebooks.</strong> Notebooks diff poorly and resist unit testing. A thin notebook (or job task) calling functions from a package gives you reviewable diffs and testable code.</li>
+      </ul>
+
+      <h2>CI/CD pipeline design</h2>
+      <p>The canonical Databricks delivery pipeline has four gates, and it is the same shape whether you implement it in Azure DevOps or GitHub Actions:</p>
+      <ol>
+        <li><strong>Validate &amp; test on the runner</strong> — lint (ruff), static checks, unit tests with a local SparkSession, <code>databricks bundle validate</code>. No workspace needed; fails fast and free.</li>
+        <li><strong>Deploy to staging</strong> — <code>bundle deploy -t staging</code> under a service-principal identity (OAuth/OIDC, not PATs where avoidable).</li>
+        <li><strong>Integration test in staging</strong> — <code>bundle run</code> the job against staging data on a small cluster or serverless; assert row counts, schema, and key data-quality expectations on the output.</li>
+        <li><strong>Promote to prod</strong> — on merge to main or a tagged release, deploy to the prod target behind a manual approval gate (an "environment" approval in Azure DevOps or GitHub).</li>
+      </ol>
+      <p>An Azure DevOps sketch — the tool you actually used — adapted to drive bundles:</p>
+<pre><code># azure-pipelines.yml
+trigger:
+  branches: { include: [ main ] }
+
+stages:
+- stage: Test
+  jobs:
+  - job: unit
+    steps:
+    - script: pip install -r requirements-dev.txt
+    - script: ruff check src/
+    - script: pytest tests/unit --junitxml=results.xml
+    - script: databricks bundle validate -t staging
+
+- stage: Staging
+  dependsOn: Test
+  jobs:
+  - deployment: deploy_staging
+    environment: databricks-staging       # approvals/checks live here
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: databricks bundle deploy -t staging
+          - script: databricks bundle run r2r_gl_load -t staging
+          - script: pytest tests/integration  # asserts on staging output
+
+- stage: Prod
+  dependsOn: Staging
+  jobs:
+  - deployment: deploy_prod
+    environment: databricks-prod          # manual approval gate
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: databricks bundle deploy -t prod</code></pre>
+      <p>The GitHub Actions version is structurally identical: a <code>pull_request</code> workflow for stage 1, a <code>push</code>-to-main workflow using <code>databricks/setup-cli</code> for stages 2–4, with protected environments providing the approval gate and OIDC federation providing keyless auth to Azure.</p>
+      <div class="callout story">At ADM you own this delivery chain for Finance R2R analytics: CI/CD through Azure DevOps with release gates, plus the operational wrapper — monitoring, runbooks, and hypercare — around pipelines orchestrated across ADF, Databricks Jobs, and Redwood RunMyJobs (with Power BI refresh in the chain). When asked "describe your CI/CD setup," narrate the gates concretely: what ran on PR, what an approval looked like, what blocked a bad release — then note you have replicated the flow with <code>databricks bundle</code> in your lab so you can speak to the native tooling too.</div>
+      <div class="callout interview"><p><strong>"Walk me through how a code change reaches production in your ideal Databricks setup."</strong></p><p>Strong outline: feature branch in a Git folder or local IDE → PR triggers lint + unit tests (local SparkSession, no cluster cost) + <code>bundle validate</code> → merge deploys the bundle to staging as a service principal → integration run on real-but-small staging data with assertions on outputs → manual approval → idempotent <code>bundle deploy -t prod</code>, schedules owned by a service principal, humans have read-only access in prod. Close with rollback: redeploy the previous Git tag — the bundle makes the workspace match the repo, so rollback is just deploying older code.</p></div>
+
+      <h2>Testing PySpark</h2>
+      <p>Distinguish three layers — interviewers love asking where data-quality checks belong, and the answer is "a different layer than unit tests":</p>
+      <table>
+        <thead>
+          <tr><th>Layer</th><th>What it verifies</th><th>Where it runs</th><th>When it runs</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Unit tests</strong></td><td>Transformation <em>logic</em>: given this input DataFrame, the function returns that output</td><td>CI runner with a local SparkSession, or your IDE via Databricks Connect</td><td>Every PR, seconds, no cluster</td></tr>
+          <tr><td><strong>Data-quality tests</strong></td><td>The <em>data</em> itself: nulls, uniqueness, referential integrity, freshness</td><td>Inside the pipeline — SDP expectations, constraint checks, or a DQ task in the job</td><td>Every production run, on real data</td></tr>
+          <tr><td><strong>Integration tests</strong></td><td>The wiring: job config, dependencies, permissions, end-to-end output on sample data</td><td>Staging workspace, small job cluster or serverless</td><td>Per deploy to staging</td></tr>
+        </tbody>
+      </table>
+      <p>For unit tests, structure code so transformations are pure functions of DataFrames, then test with <code>pyspark.testing.assertDataFrameEqual</code> (built in since Spark 3.5 — no more hand-rolled collect-and-sort comparisons):</p>
+<pre><code># src/transforms.py
+def derive_variance(actuals_df, budget_df):
+    return (actuals_df.join(budget_df, ["cost_center", "period"], "left")
+            .withColumn("variance", col("actual_amt") - col("budget_amt")))
+
+# tests/unit/test_transforms.py
+from pyspark.testing import assertDataFrameEqual
+
+def test_variance(spark):  # spark = local SparkSession fixture
+    actuals = spark.createDataFrame([("CC10", "2026-05", 120.0)],
+                                    "cost_center string, period string, actual_amt double")
+    budget  = spark.createDataFrame([("CC10", "2026-05", 100.0)],
+                                    "cost_center string, period string, budget_amt double")
+    expected = spark.createDataFrame([("CC10", "2026-05", 120.0, 100.0, 20.0)],
+        "cost_center string, period string, actual_amt double, budget_amt double, variance double")
+    assertDataFrameEqual(derive_variance(actuals, budget), expected)</code></pre>
+      <p>Databricks Connect is the alternative runtime for the same tests: the pytest fixture builds a <code>DatabricksSession</code> instead of a local one, and execution happens on remote serverless compute — useful when logic depends on Databricks-specific behavior, at the cost of speed and a workspace dependency in CI. Default to local Spark in CI; reserve Connect for interactive development and the rare DBR-dependent test. Data-quality checks, by contrast, run on every production execution because they guard against bad <em>inputs</em>, which no amount of unit testing can prevent.</p>
+      <div class="callout warn">Pitfall: testing notebooks by running them end to end as the only "test." Notebook-runner tests are slow, flaky, expensive, and tell you only that something failed somewhere. If your logic lives in <code>%run</code>-chained notebooks with widget state, it is effectively untestable. Refactor to importable functions first; the testing problem mostly dissolves. The second classic trap: letting unit tests depend on real catalog tables — your CI now fails whenever someone touches dev data.</div>
+
+      <h2>Environment strategy: workspaces vs catalogs</h2>
+      <p>Under Unity Catalog there are two viable isolation models, and a deliberate hybrid is the common enterprise answer:</p>
+      <table>
+        <thead>
+          <tr><th></th><th>Workspace per environment</th><th>Catalog per environment</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Isolation</strong></td><td>Strong: separate compute, network config, workspace ACLs per env</td><td>Data-level only: one workspace, <code>dev</code>/<code>staging</code>/<code>prod</code> catalogs separated by grants</td></tr>
+          <tr><td><strong>Cost &amp; overhead</strong></td><td>Higher: three workspaces to administer, bind, and pay attention to</td><td>Lower: one workspace, simpler day-to-day</td></tr>
+          <tr><td><strong>Blast radius</strong></td><td>A dev mistake cannot touch prod compute or config</td><td>A misconfigured grant or a job pointed at the wrong catalog can cross environments</td></tr>
+          <tr><td><strong>Promotion</strong></td><td>Bundle targets point at different hosts; identical code, different workspace</td><td>Bundle targets override only the catalog variable; same host</td></tr>
+          <tr><td><strong>Best fit</strong></td><td>Regulated/enterprise prod (use workspace-catalog binding so the prod catalog is reachable only from the prod workspace)</td><td>Small teams, fast iteration, lower-stakes domains</td></tr>
+        </tbody>
+      </table>
+      <p>Since UC metastores are per-region and shared across workspaces, the hybrid is natural: separate workspaces for prod vs non-prod, environment-named catalogs, and <strong>workspace-catalog bindings</strong> ensuring <code>fin_prod</code> is simply invisible outside the production workspace. Whatever the topology, parameterize the catalog in code (a bundle variable or job parameter) so promotion never requires an edit.</p>
+
+      <h2>Secrets management</h2>
+      <p>Never put credentials in notebooks, job parameters, or repo YAML. Databricks secret scopes hold key-value secrets accessed via <code>dbutils.secrets.get(scope, key)</code>; values are redacted in notebook output. On Azure, prefer <strong>Azure Key Vault-backed scopes</strong>: the scope is a read-only mirror of a Key Vault, so rotation, access policies, and audit stay in Key Vault where the security team already lives — the pattern that matches your Azure estate. Two caveats worth volunteering: anyone with READ on a scope can print a secret if they try (redaction is cosmetic, ACLs are the control), and for service-to-service auth the stronger 2026 answer is to avoid long-lived secrets entirely — UC storage credentials with managed identities for data access, OAuth/OIDC federation for CI pipelines.</p>
+
+      <h2>Terraform: account and workspace infrastructure</h2>
+      <p>Bundles deploy <em>into</em> workspaces; the <strong>Databricks Terraform provider</strong> builds what bundles assume already exists — workspaces themselves, the UC metastore, catalogs and external locations, storage credentials, groups and service principals, cluster policies, network configuration. The clean division of labor: platform team owns Terraform (infrastructure, governance scaffolding, slow-changing), data teams own bundles (jobs and pipelines, fast-changing, per-project). Be plain about your level here: <strong>your Terraform is working knowledge</strong> — you can read provider configs and explain the division of responsibilities, but infrastructure provisioning was not your hands-on lane. Saying so, then articulating the bundle/Terraform boundary crisply, lands better than bluffing through a state-file question.</p>
+
+      <h2>Observability in production</h2>
+      <p>Production discipline is what you sell hardest, because you have lived it. The Databricks-native toolkit:</p>
+      <ul>
+        <li><strong>Job monitoring</strong> — Lakeflow Jobs gives run history, durations, task-level retries, and per-run lineage in the Jobs &amp; Pipelines UI; configure retries and timeout per task, not just per job.</li>
+        <li><strong>Alerting</strong> — job-level notifications (email, webhooks to Teams/Slack/PagerDuty) on failure <em>and</em> on duration thresholds — a job that usually takes 20 minutes still running at 90 is an incident before it fails. SQL alerts on top of gold tables catch silent data problems.</li>
+        <li><strong>System tables</strong> — UC-governed operational data under the <code>system</code> catalog: <code>system.lakeflow.job_run_timeline</code> for run outcomes and durations, <code>system.billing.usage</code> for cost per job, audit logs, query history. This is the basis for an SLA dashboard: trend run durations, flag jobs drifting toward their window, attribute spend to pipelines. It turns "we monitor jobs" into "we query our operations."</li>
+        <li><strong>SLAs</strong> — define them as data-availability commitments ("gold P&amp;L tables current by 6:00 local on business days"), measure them from system tables, and alert on leading indicators, not just breaches.</li>
+      </ul>
+      <div class="callout story">Monitoring, runbooks, and hypercare via Azure DevOps are on your resume at ADM for a reason: R2R feeds Executive Committee and CFO-level reporting, where a late P&amp;L or Budget-vs-Actual refresh is visible at the top of the company. You also coordinated failure handling across a multi-tool chain — ADF, Databricks jobs, RunMyJobs, Power BI refresh — where "the pipeline failed" first means working out <em>which</em> pipeline. Use that: cross-system triage is exactly the maturity the system-tables story formalizes, and you can say you would rebuild your monitoring on <code>system.lakeflow</code> queries rather than UI spot checks.</div>
+
+      <h2>Runbooks and hypercare</h2>
+      <p>The least glamorous, most differentiating topic on this page. A <strong>runbook</strong> is the per-pipeline operational contract: what the pipeline does and its SLA, how failures present, triage steps in order (check the job run page → task error → upstream source availability → data-quality output), safe rerun procedure (which tasks are idempotent, what a backfill needs), escalation path with names, and known failure modes with fixes. The test of a good runbook is that the on-call who did not build the pipeline resolves the incident without paging the author. <strong>Hypercare</strong> is the deliberately elevated support window after go-live — daily run reviews, tightened alert thresholds, the build team on point rather than standard support, explicit exit criteria (for example, N consecutive clean cycles and no Sev-1s) before handover to steady-state operations. Treating hypercare as a planned phase with an exit gate, rather than "we'll watch it for a while," is a signal of operational maturity that most candidates cannot give — you can, from your ADM delivery work.</p>
+      <div class="callout interview"><p><strong>"A production pipeline failed overnight and a CFO-level dashboard is stale. What do you do?"</strong></p><p>Strong outline: (1) Communicate first — notify consumers of the stale state and an ETA before debugging, because trust decays faster than data. (2) Triage via the runbook: job run page → failing task error → upstream availability → data-quality check output. (3) Restore service — rerun from the failed task if idempotent (repair run), scoped backfill if not; fixing the dashboard beats root-causing first. (4) Root-cause afterward and feed it back: a new alert or DQ expectation so this failure mode is caught earlier, and a runbook update. Anchor it in your actual ADM context — Finance R2R consumers, multi-tool orchestration — and it stops sounding hypothetical.</p></div>
+      <div class="callout tip">Thread to pull across the whole module: <strong>everything is declarative and versioned</strong>. Bundles declare workspace assets, Terraform declares infrastructure, SDP declares pipelines, runbooks declare operations. If you frame DevOps on Databricks as "move every click into reviewed, versioned configuration," every sub-topic on this page becomes one coherent answer.</div>
+    </article>
+
+    <div class="pagenav"><a href="de-sql.html"><span class="label">Previous</span>Databricks SQL &amp; the Semantic Layer</a><a class="next" href="de-certifications.html"><span class="label">Next</span>Certification Roadmap</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

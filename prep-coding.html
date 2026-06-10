@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PySpark & SQL Drills · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="prep-track.html">Interview Prep Track</a> / PySpark & SQL Drills</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge prep">Prep · Module 01</span>
+        <h1>PySpark & SQL Drills</h1>
+        <p class="lede">The transformation, windowing, and optimization drills technical screens actually use - with worked solutions.</p>
+      </header>
+
+      <h2>How to run these drills</h2>
+      <p>Every solution is collapsed. Read the problem, write your answer in a notebook or on paper under a 10&ndash;15 minute timer, <em>then</em> open the solution. As of mid-2026, candidate reports (Glassdoor, Blind) describe the Databricks coding bar as near-flawless &mdash; needing a hint counts against you &mdash; and partner/customer screens lean on exactly these scenario patterns: windowing, MERGE, skew, and incremental loads. Two habits matter as much as the code: narrate your reasoning out loud, and state assumptions about data volume before you pick a strategy ("if the dimension is under ~1 GB I broadcast; if not, here is plan B").</p>
+
+      <div class="callout tip">
+        <p>Default to the <strong>DataFrame API over RDDs</strong> in every answer &mdash; it gets Catalyst optimization, whole-stage codegen, and Photon for free. Only mention RDDs if asked about internals. And end strong answers with one sentence of production hygiene: "in production I'd wrap this with data-quality expectations and tests on row counts and key uniqueness." It signals seniority without padding.</p>
+      </div>
+
+      <h2>PySpark drill set</h2>
+
+      <h3>Drill 1 &mdash; Dedupe to the latest record per key</h3>
+      <p>Bronze receives full extracts plus intraday correction rows. Keep only the latest version of each <code>account_id</code>. Input: <code>(account_id, attributes..., updated_at, source_seq)</code> with duplicates per key. Output: exactly one row per <code>account_id</code>.</p>
+      <details><summary>Solution &amp; discussion</summary>
+<pre><code>from pyspark.sql import functions as F, Window as W
+
+w = (W.partitionBy("account_id")
+      .orderBy(F.col("updated_at").desc(), F.col("source_seq").desc()))
+
+latest = (df
+    .withColumn("rn", F.row_number().over(w))
+    .filter("rn = 1")
+    .drop("rn"))</code></pre>
+        <p><strong>What the interviewer is probing:</strong> do you know that <code>dropDuplicates(["account_id"])</code> keeps an <em>arbitrary</em> row, while <code>row_number</code> with an explicit ordering is deterministic? Always add a tie-breaker column (<code>source_seq</code>) because timestamps collide.</p>
+        <p><strong>Shuffle/complexity:</strong> one hash shuffle on the partition key, then a per-partition sort. Roughly O(n log n) within partitions. <code>max_by</code> / <code>groupBy().agg()</code> avoids the sort if you only need a couple of columns.</p>
+      </details>
+
+      <div class="callout interview">
+        <p><strong>"Your upstream sends late-arriving corrections. How do you guarantee Silver has exactly one current row per business key?"</strong></p>
+        <p>Outline: (1) define the grain and the ordering columns explicitly; (2) dedupe the incoming batch with <code>row_number()</code>; (3) <code>MERGE</code> into Silver on the business key so reprocessing is idempotent; (4) call out that the merge source must itself be duplicate-free or the merge fails with multiple-match errors; (5) close with monitoring: a uniqueness check on the key after each run.</p>
+      </div>
+
+      <h3>Drill 2 &mdash; SCD Type 2 merge into a dimension</h3>
+      <p>Maintain <code>silver.dim_account</code> with <code>valid_from</code>, <code>valid_to</code>, <code>is_current</code>. A changed attribute must close the current row and insert a new version &mdash; in one MERGE.</p>
+      <details><summary>Solution &amp; discussion</summary>
+        <p>The trick: a changed key needs both an UPDATE (close) and an INSERT (open), but MERGE matches each source row once. So stage the source twice &mdash; once with the real key (drives the close) and once with a NULL merge key (never matches, so it inserts).</p>
+<pre><code>from delta.tables import DeltaTable
+from pyspark.sql import functions as F
+
+target = DeltaTable.forName(spark, "silver.dim_account")
+current = target.toDF().filter("is_current")
+
+changed = (src.alias("s")
+    .join(current.alias("t"), "account_id")
+    .where("s.cost_center &lt;&gt; t.cost_center OR s.owner &lt;&gt; t.owner")
+    .select("s.*"))
+
+staged = (src.withColumn("merge_key", F.col("account_id"))
+    .unionByName(changed.withColumn("merge_key", F.lit(None))))
+
+(target.alias("t")
+ .merge(staged.alias("s"),
+        "t.account_id = s.merge_key AND t.is_current = true")
+ .whenMatchedUpdate(
+     condition="s.cost_center &lt;&gt; t.cost_center OR s.owner &lt;&gt; t.owner",
+     set={"is_current": "false", "valid_to": "s.effective_date"})
+ .whenNotMatchedInsert(values={
+     "account_id": "s.account_id", "cost_center": "s.cost_center",
+     "owner": "s.owner", "valid_from": "s.effective_date",
+     "valid_to": "NULL", "is_current": "true"})
+ .execute())</code></pre>
+        <p><strong>Probing:</strong> do you understand MERGE semantics, idempotency, and why brand-new keys also flow through the NOT MATCHED branch? Mention hashing tracked attributes (<code>xxhash64</code>) instead of a long OR-chain for change detection.</p>
+        <p><strong>Shuffle:</strong> the join and the merge each shuffle on the key; the merge also rewrites matched files, so partitioning/clustering the dimension by a stable column reduces write amplification.</p>
+      </details>
+
+      <div class="callout story">
+        <p>You give CDC/SCD design recommendations for a living. At ADM your Finance R2R medallion pipelines land JDE, SAP, HFM, IBM DB2, and APGO Web Wire into Delta Lake, and your fit-gap work explicitly covers CDC/SCD design choices. When this drill comes up, answer with the pattern above, then add how you decide SCD1 vs SCD2 per attribute based on whether Finance needs as-was reporting &mdash; that turns a coding answer into an architecture answer.</p>
+      </div>
+
+      <h3>Drill 3 &mdash; Join a skewed fact to a dimension</h3>
+      <p>A 2 TB transaction fact joins a customer dimension; 5% of customers carry 80% of rows, and a handful of keys dominate. Make the join finish.</p>
+      <details><summary>Solution &amp; discussion</summary>
+        <p>First question to ask out loud: how big is the dimension? If it fits in executor memory, broadcast and skew is irrelevant:</p>
+<pre><code>joined = fact.join(F.broadcast(dim), "customer_id")</code></pre>
+        <p>If both sides are large, enable AQE skew handling first (on by default in recent runtimes: <code>spark.sql.adaptive.skewJoin.enabled</code>), which splits oversized partitions at runtime. Manual salting is the fallback:</p>
+<pre><code>SALT = 16
+fact_s = fact.withColumn("salt", (F.rand() * SALT).cast("int"))
+dim_s  = dim.withColumn("salt",
+            F.explode(F.array(*[F.lit(i) for i in range(SALT)])))
+joined = fact_s.join(dim_s, ["customer_id", "salt"]).drop("salt")</code></pre>
+        <p><strong>Probing:</strong> do you reach for AQE before hand-rolling salting, and do you know the cost of salting (the small side is replicated SALT times)? Salting only the known-hot keys is the refined answer.</p>
+      </details>
+      <table>
+        <thead><tr><th>Strategy</th><th>When</th><th>Shuffle cost</th><th>Gotcha</th></tr></thead>
+        <tbody>
+          <tr><td>Broadcast hash join</td><td>One side small (default hint threshold ~10 MB; practically up to a few hundred MB if executors allow)</td><td>No shuffle of the big side</td><td>Driver/executor OOM if the "small" side grows; never broadcast the big side</td></tr>
+          <tr><td>Sort-merge join</td><td>Both sides large, keys evenly distributed</td><td>Full shuffle + sort of both sides</td><td>One hot key = one straggler task</td></tr>
+          <tr><td>AQE skew join</td><td>Both sides large, runtime-detected skew</td><td>Splits oversized partitions automatically</td><td>Needs AQE enabled; verify in the Spark UI it actually fired</td></tr>
+          <tr><td>Manual salting</td><td>Known hot keys, AQE insufficient</td><td>Replicates small side &times; salt factor</td><td>More code, must drop salt; size the factor to the skew</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Drill 4 &mdash; Explode and aggregate nested JSON</h3>
+      <p>Bronze rows carry a JSON <code>payload</code> string with an array of line items. Produce one row per order with the order total. Input: <code>(order_id, payload)</code>. Output: <code>(order_id, order_total)</code>.</p>
+      <details><summary>Solution &amp; discussion</summary>
+<pre><code>from pyspark.sql import types as T
+
+schema = T.StructType([T.StructField("line_items", T.ArrayType(
+    T.StructType([T.StructField("qty", T.IntegerType()),
+                  T.StructField("unit_price", T.DecimalType(18, 2))])))])
+
+totals = (raw
+    .select("order_id", F.from_json("payload", schema).alias("p"))
+    .select("order_id", F.explode_outer("p.line_items").alias("li"))
+    .groupBy("order_id")
+    .agg(F.sum(F.col("li.qty") * F.col("li.unit_price")).alias("order_total")))</code></pre>
+        <p><strong>Probing:</strong> explicit schema vs <code>schema_of_json</code> inference (explicit wins in production &mdash; inference is a separate job and drifts); <code>explode_outer</code> so orders with empty arrays survive; and the sharper follow-up &mdash; you don't need explode at all here: <code>F.aggregate("p.line_items", ...)</code> sums the array in place with zero row blow-up. Saying that unprompted is a strong signal.</p>
+        <p><strong>Shuffle:</strong> explode multiplies rows before the groupBy shuffle; the higher-order-function version aggregates per row and shuffles nothing extra.</p>
+      </details>
+
+      <h3>Drill 5 &mdash; Incremental load with a high-water mark</h3>
+      <p>Pull only new/changed rows from a JDBC source table with an <code>updated_at</code> column, land them in Delta, and make reruns safe.</p>
+      <details><summary>Solution &amp; discussion</summary>
+<pre><code>hwm = (spark.table("etl.watermarks")
+       .filter("table_name = 'gl_postings'")
+       .agg(F.max("hwm_value")).first()[0]) or "1900-01-01"
+
+inc = (spark.read.format("jdbc").options(**jdbc_opts)
+       .option("query",
+               f"SELECT * FROM gl_postings WHERE updated_at &gt; '{hwm}'")
+       .load())
+
+(DeltaTable.forName(spark, "bronze.gl_postings").alias("t")
+ .merge(inc.alias("s"), "t.doc_id = s.doc_id AND t.line_id = s.line_id")
+ .whenMatchedUpdateAll().whenNotMatchedInsertAll().execute())
+
+new_hwm = inc.agg(F.max("updated_at")).first()[0]
+# persist new_hwm to etl.watermarks ONLY after the merge succeeds</code></pre>
+        <p><strong>Probing:</strong> ordering of operations (advance the watermark after, never before, a successful write); using MERGE instead of append so reruns and overlap windows are idempotent; pushing the filter into the JDBC query rather than reading the whole table and filtering in Spark. Mention the classic failure: <code>updated_at</code> set by app servers with clock drift &mdash; subtract a safety overlap (e.g. reload the last 15 minutes) and let MERGE absorb the duplicates. If asked about file sources, note that Auto Loader / <code>COPY INTO</code> solve the same problem with file-level state &mdash; know them as concepts even if your production stack used watermark tables and ADF.</p>
+      </details>
+
+      <h3>Drill 6 &mdash; Top-N per group</h3>
+      <p>Return the top 3 expense categories per cost center by amount, including ties at rank 3.</p>
+      <details><summary>Solution &amp; discussion</summary>
+<pre><code>w = W.partitionBy("cost_center").orderBy(F.col("amount").desc())
+
+top3 = (df.withColumn("rnk", F.dense_rank().over(w))
+          .filter("rnk &lt;= 3"))</code></pre>
+        <p><strong>Probing:</strong> the rank-family distinction. <code>row_number</code> breaks ties arbitrarily (exactly 3 rows), <code>rank</code> leaves gaps, <code>dense_rank</code> includes ties without gaps. Ask which behavior the "business" wants &mdash; that question is the point of the drill. Same single-shuffle profile as Drill 1.</p>
+      </details>
+
+      <h3>Drill 7 &mdash; Pivot and unpivot</h3>
+      <p>Turn <code>(cost_center, month, amount)</code> into one column per month, then reverse it.</p>
+      <details><summary>Solution &amp; discussion</summary>
+<pre><code>months = ["2026-01", "2026-02", "2026-03"]
+pivoted = (actuals.groupBy("cost_center")
+           .pivot("month", months)      # pass values explicitly!
+           .agg(F.sum("amount")))
+
+unpivoted = pivoted.selectExpr(
+    "cost_center",
+    "stack(3, '2026-01', `2026-01`, '2026-02', `2026-02`, "
+    "'2026-03', `2026-03`) AS (month, amount)")</code></pre>
+        <p><strong>Probing:</strong> passing the pivot value list explicitly skips the extra job Spark runs to discover distinct values and keeps the schema stable. For unpivot, <code>stack()</code> (or the SQL <code>UNPIVOT</code> clause in recent runtimes) &mdash; interviewers like hearing that tall/narrow is the modeling-friendly shape and wide pivots belong at the BI layer.</p>
+      </details>
+
+      <h3>Drill 8 &mdash; Sessionization sketch</h3>
+      <p>Given <code>(user_id, event_ts)</code> clickstream, assign session IDs where a gap over 30 minutes starts a new session.</p>
+      <details><summary>Solution &amp; discussion</summary>
+<pre><code>w = W.partitionBy("user_id").orderBy("event_ts")
+
+sessions = (events
+  .withColumn("prev_ts", F.lag("event_ts").over(w))
+  .withColumn("is_new",
+      F.when(F.col("prev_ts").isNull() |
+             ((F.col("event_ts").cast("long") -
+               F.col("prev_ts").cast("long")) &gt; 1800), 1).otherwise(0))
+  .withColumn("session_seq", F.sum("is_new").over(w))
+  .withColumn("session_id",
+      F.concat_ws("-", "user_id", "session_seq")))</code></pre>
+        <p><strong>Probing:</strong> the lag &rarr; flag &rarr; running-sum pattern (it reappears in gaps-and-islands below); handling the first event's NULL lag; and whether you mention that in streaming this becomes <code>session_window()</code> with a watermark. Two window passes over the same partitioning = one shuffle, two sorts.</p>
+      </details>
+
+      <div class="callout warn">
+        <p>A window with <code>orderBy</code> but <strong>no <code>partitionBy</code></strong> drags the entire dataset into a single partition on one task &mdash; the classic silent killer in window drills and in production. If a global ordering is truly required, say so explicitly and acknowledge the cost; otherwise always partition. Interviewers plant this trap deliberately.</p>
+      </div>
+
+      <h2>Spark SQL drill set</h2>
+
+      <h3>Drill 1 &mdash; Running totals and variance vs prior period</h3>
+      <p>From <code>gold.gl_actuals (cost_center, fiscal_period, amount)</code>: monthly actuals, YTD running total, and month-over-month variance per cost center.</p>
+      <details><summary>Solution &amp; discussion</summary>
+<pre><code>SELECT
+  cost_center,
+  fiscal_period,
+  SUM(amount) AS actual,
+  SUM(SUM(amount)) OVER (
+      PARTITION BY cost_center ORDER BY fiscal_period
+      ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS ytd_actual,
+  SUM(amount) - LAG(SUM(amount)) OVER (
+      PARTITION BY cost_center ORDER BY fiscal_period) AS mom_variance
+FROM gold.gl_actuals
+GROUP BY cost_center, fiscal_period</code></pre>
+        <p><strong>Probing:</strong> windows evaluate <em>after</em> GROUP BY, so <code>SUM(SUM(amount))</code> is legal &mdash; saying that sentence cleanly is half the points. Specify the frame: the default with ORDER BY is <code>RANGE ... CURRENT ROW</code>, which lumps peer rows together; <code>ROWS</code> is what you almost always mean. YTD needs a partition reset on fiscal year &mdash; add <code>fiscal_year</code> to the PARTITION BY and say so.</p>
+      </details>
+
+      <div class="callout story">
+        <p>This drill is literally your day job. The ADM P&amp;L and Budget vs Actual KPI frameworks you built for Executive Committee and CFO-level consumers compute exactly these measures &mdash; period actuals, YTD rollups, variance vs prior period and vs budget &mdash; over R2R data in Gold. When you get a windowing question, anchor it: "I compute P&amp;L variance this way in production; the subtlety that bites is the window frame and fiscal-year boundaries." Then mention Budget vs Actual as a second table joined on period + cost center with a variance and variance-percent column. Real context beats textbook recall.</p>
+      </div>
+
+      <h3>Drill 2 &mdash; Gaps and islands</h3>
+      <p>From <code>(account_id, activity_date)</code> with one row per active day, find each account's consecutive-day streaks (start, end, length).</p>
+      <details><summary>Solution &amp; discussion</summary>
+<pre><code>WITH flagged AS (
+  SELECT account_id, activity_date,
+         DATE_SUB(activity_date,
+           ROW_NUMBER() OVER (PARTITION BY account_id
+                              ORDER BY activity_date)) AS grp
+  FROM daily_activity
+)
+SELECT account_id,
+       MIN(activity_date) AS streak_start,
+       MAX(activity_date) AS streak_end,
+       COUNT(*)           AS streak_days
+FROM flagged
+GROUP BY account_id, grp</code></pre>
+        <p><strong>Probing:</strong> the insight that <code>date - row_number</code> is constant within a consecutive run. Walk a 4-row example out loud to prove you understand it rather than memorized it. Assumes deduped input &mdash; state that. One shuffle for the window, one for the group.</p>
+      </details>
+
+      <h3>Drill 3 &mdash; Percent of total at each hierarchy level</h3>
+      <p>Expense rows carry <code>segment &gt; business_unit &gt; cost_center</code>. Show each cost center's share of its BU, its segment, and the company.</p>
+      <details><summary>Solution &amp; discussion</summary>
+<pre><code>SELECT segment, business_unit, cost_center, expense,
+  expense / SUM(expense) OVER ()                                   AS pct_company,
+  expense / SUM(expense) OVER (PARTITION BY segment)               AS pct_segment,
+  expense / SUM(expense) OVER (PARTITION BY segment, business_unit) AS pct_bu
+FROM gold.expense_summary</code></pre>
+        <p><strong>Probing:</strong> multiple windows at different grains in one pass &mdash; no self-joins. Note the empty <code>OVER ()</code> computes a global total (single-partition exchange for that one aggregate &mdash; fine for an aggregate, dangerous for an ordered window, per the warning above). Guard division by zero with <code>NULLIF</code> in production.</p>
+      </details>
+
+      <h3>Drill 4 &mdash; Dedupe with QUALIFY</h3>
+      <p>Latest extract row per <code>(doc_id, line_id)</code> &mdash; no subquery allowed.</p>
+      <details><summary>Solution &amp; discussion</summary>
+<pre><code>SELECT *
+FROM bronze.jde_gl_extract
+QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY doc_id, line_id
+    ORDER BY extracted_at DESC) = 1</code></pre>
+        <p><strong>Probing:</strong> <code>QUALIFY</code> filters on window results the way HAVING filters on aggregates &mdash; it removes the wrapper subquery. Supported in Databricks SQL (and Snowflake, BigQuery, Teradata) but it is not universal ANSI; say "where QUALIFY isn't available I fall back to a CTE with row_number" to show portability awareness.</p>
+      </details>
+
+      <h3>Drill 5 &mdash; Date spine for missing periods</h3>
+      <p>Cost centers with no postings in a month are missing entirely from actuals &mdash; but the variance report needs a zero row for every (month, cost center). Fill the gaps.</p>
+      <details><summary>Solution &amp; discussion</summary>
+<pre><code>WITH spine AS (
+  SELECT explode(sequence(DATE '2026-01-01', DATE '2026-12-01',
+                          INTERVAL 1 MONTH)) AS period_start
+),
+cc AS (SELECT DISTINCT cost_center FROM gold.gl_actuals)
+SELECT s.period_start, c.cost_center,
+       COALESCE(a.amount, 0) AS amount
+FROM spine s
+CROSS JOIN cc c
+LEFT JOIN gold.gl_actuals a
+       ON a.fiscal_period = s.period_start
+      AND a.cost_center  = c.cost_center</code></pre>
+        <p><strong>Probing:</strong> recognizing that LAG/variance silently skips missing periods unless you densify first &mdash; a wrong variance number is worse than a missing one in finance. The CROSS JOIN is deliberate and tiny (12 &times; cost centers); saying "this cartesian is intentional and bounded" preempts the obvious follow-up.</p>
+      </details>
+
+      <h2>Optimization mini-drills: spot the problem</h2>
+      <p>Each snippet has one production-grade flaw. Name it, explain the blast radius, give the fix.</p>
+
+      <h3>Mini-drill A</h3>
+<pre><code>rows = df.collect()
+total = sum(r["amount"] for r in rows)</code></pre>
+      <details><summary>Solution &amp; discussion</summary>
+        <p><code>collect()</code> pulls the whole dataset to the driver &mdash; OOM at scale, and the aggregation runs single-threaded in Python. Fix: <code>df.agg(F.sum("amount")).first()[0]</code> &mdash; the cluster aggregates, one scalar returns. The probe: do you keep computation on executors and reserve <code>collect</code>/<code>toPandas</code> for provably small results?</p>
+      </details>
+
+      <h3>Mini-drill B</h3>
+<pre><code>@udf("string")
+def clean(s):
+    return s.strip().upper() if s else None
+
+df = df.withColumn("name", clean("name"))</code></pre>
+      <details><summary>Solution &amp; discussion</summary>
+        <p>A Python UDF for logic that built-ins cover: <code>F.upper(F.trim("name"))</code>. The UDF forces JVM&harr;Python serialization per row, blocks codegen and Photon, and is opaque to Catalyst. Escalation ladder to recite: built-ins &rarr; higher-order functions &rarr; <code>pandas_udf</code> (vectorized via Arrow) &rarr; row-wise Python UDF as last resort.</p>
+      </details>
+
+      <h3>Mini-drill C</h3>
+<pre><code>(df.repartition(1)
+   .write.format("delta").mode("overwrite")
+   .saveAsTable("gold.report"))</code></pre>
+      <details><summary>Solution &amp; discussion</summary>
+        <p><code>repartition(1)</code> funnels the entire write through one task &mdash; one core does all the work and one giant file lands. Let the engine handle file sizing (optimized writes / AQE partition coalescing, plus <code>OPTIMIZE</code> after) instead of forcing single-file output. Bonus distinction: <code>repartition</code> always shuffles; <code>coalesce</code> narrows without a shuffle but can starve upstream parallelism because it propagates back through the plan.</p>
+      </details>
+
+      <h3>Mini-drill D</h3>
+<pre><code>result = fact.join(dim, fact.cust_id == fact.cust_id, "inner")</code></pre>
+      <details><summary>Solution &amp; discussion</summary>
+        <p>The typo compares a column to itself &mdash; true for every non-null key, so the join degenerates into a near-cartesian product (rows &times; rows). Spark may surface it as <code>CartesianProduct</code> or <code>BroadcastNestedLoopJoin</code> in the plan. Fix the condition (<code>fact.cust_id == dim.cust_id</code>); the senior habit is running <code>.explain()</code> and checking the join node before launching anything expensive. If a cross join is ever intended (Drill 5's date spine), write <code>crossJoin()</code> explicitly so reviewers see intent.</p>
+      </details>
+
+      <div class="callout interview">
+        <p><strong>"A job that ran in 20 minutes now takes 3 hours. Walk me through your debugging."</strong></p>
+        <p>Outline: (1) Spark UI first &mdash; which stage regressed, task-duration skew, shuffle read/write sizes, spill to disk; (2) compare input volume vs last good run (data growth or a partition-pruning regression?); (3) check the plan: did a broadcast silently flip to sort-merge because the dim outgrew the threshold? (4) skew: a few straggler tasks holding a stage open; (5) only then touch infra (cluster size, autoscaling). Close with prevention: job metrics and alert thresholds so regressions surface before users notice.</p>
+      </div>
+
+      <h2>Python quickies</h2>
+      <p>Screens often tack on 5-minute pure-Python checks. Be fast on these:</p>
+      <details><summary>Dict and set idioms &mdash; solutions</summary>
+<pre><code># dedupe preserving order (dicts are insertion-ordered)
+unique = list(dict.fromkeys(items))
+
+# schema diff between two DataFrames
+missing = set(expected_cols) - set(df.columns)
+extra   = set(df.columns) - set(expected_cols)
+
+# frequency count
+from collections import Counter
+top = Counter(codes).most_common(5)</code></pre>
+        <p>Know the complexity story: set/dict membership is O(1) average vs O(n) for a list &mdash; the one-line justification interviewers want.</p>
+      </details>
+      <details><summary>Generators &mdash; solutions</summary>
+<pre><code>def read_batches(path, size=10_000):
+    batch = []
+    for line in open(path):          # lazy: one line in memory at a time
+        batch.append(parse(line))
+        if len(batch) == size:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+
+total = sum(r.amount for r in rows)  # generator expr: no list built</code></pre>
+        <p>The point to articulate: generators trade memory for laziness &mdash; the same idea as Spark's lazy evaluation, which makes a tidy bridge back to distributed thinking.</p>
+      </details>
+
+      <h2>Tactical notes for the live screen</h2>
+      <ul>
+        <li><strong>Think aloud, always.</strong> Communication is weighted heavily in candidate reports; silent-then-perfect scores worse than narrated-and-good.</li>
+        <li><strong>State assumptions before code:</strong> data volume, key cardinality, skew, freshness SLA. "At 10 GB I'd just broadcast; at 10 TB here's the partitioning story."</li>
+        <li><strong>Name the shuffle.</strong> After any solution, one sentence on where data moves across the cluster and why &mdash; it's the cheapest way to sound senior.</li>
+        <li><strong>Prefer DataFrame API / SQL over RDDs;</strong> bring up RDDs only when asked about internals.</li>
+        <li><strong>Close with production hygiene:</strong> "I'd add expectations on nulls/uniqueness, row-count reconciliation against the source, and an idempotent rerun path." Keep it to one sentence unless invited to expand.</li>
+        <li><strong>If you're stuck,</strong> talk through the brute-force version, ship it, then optimize &mdash; a working O(n&sup2;) beats a perfect idea you never typed.</li>
+      </ul>
+
+      <div class="callout tip">
+        <p>Re-drill anything you opened the solution for within 48 hours, from a blank cell. Once each drill is clean twice, move on to <a href="prep-system-design.html">system design</a> &mdash; the windowing and MERGE patterns here are the building blocks that design round expects you to wield without thinking.</p>
+      </div>
+    </article>
+
+    <div class="pagenav"><a href="prep-track.html"><span class="label">Previous</span>Interview Prep Track</a><a class="next" href="prep-system-design.html"><span class="label">Next</span>Data Platform System Design</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

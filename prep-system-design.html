@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Platform System Design · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="prep-track.html">Interview Prep Track</a> / Data Platform System Design</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge prep">Prep · Module 02</span>
+        <h1>Data Platform System Design</h1>
+        <p class="lede">A repeatable framework for lakehouse design interviews, plus three fully worked designs.</p>
+      </header>
+
+      <p>As of mid-2026, candidate reports converge on one signature Databricks design prompt: <em>"design a scalable ingestion-to-lakehouse pipeline (Spark + Delta + cloud storage) that handles latency, schema evolution, and access control."</em> Partner and customer interviews run scenario variants of the same thing, and the RSA panel presentation is this exercise performed in front of people role-playing a customer. You do not need a new architecture per question &mdash; you need one framework you can run in your sleep, and you have to hit governance, operations, and cost before time runs out, because that is where senior candidates separate from mid-level ones.</p>
+
+      <h2>The 9-step framework, with a 45-minute budget</h2>
+      <p>Rehearse this as a script. At each step, say the headline out loud ("Next I want to cover storage layout") &mdash; interviewers grade coverage and structure, and narrating your plan buys you forgiveness when you go deep on one box.</p>
+
+      <table>
+        <thead><tr><th>#</th><th>Step</th><th>Minutes</th><th>What you say and write down</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Clarify requirements &amp; consumers</td><td>4</td><td>Who consumes this, for what decision, how fresh, what query shapes (dashboard vs ad hoc vs API vs ML)? What exists today? What does success look like? Ask before drawing.</td></tr>
+          <tr><td>2</td><td>Quantify volume / velocity / variety + SLAs</td><td>4</td><td>Rows and GB per day, peak vs average, growth, number and type of sources, retention, and the SLA as a number ("dashboards correct by 06:00"). Write the numbers in a corner of the board.</td></tr>
+          <tr><td>3</td><td>Ingestion design</td><td>6</td><td>One pattern per source class: CDC for databases, Auto Loader / COPY INTO for file drops, Structured Streaming from Kafka/Event Hubs, scheduled pulls for APIs. State idempotency and raw retention explicitly.</td></tr>
+          <tr><td>4</td><td>Storage layout &amp; modeling</td><td>6</td><td>Medallion semantics (Bronze raw-immutable, Silver conformed/validated, Gold consumer-shaped), Delta features you rely on (ACID, schema enforcement, time travel), dimensional model and SCD strategy, partitioning vs liquid clustering, target file sizes.</td></tr>
+          <tr><td>5</td><td>Transformation &amp; orchestration</td><td>6</td><td>Incremental processing (MERGE, Change Data Feed), the dependency DAG, batch jobs vs declarative pipelines, data-quality expectations, dev/test/prod promotion and CI/CD.</td></tr>
+          <tr><td>6</td><td>Serving &amp; consumption</td><td>5</td><td>SQL warehouse for BI, semantic layer choice, concurrency and caching, ML/feature consumers, external shares or APIs. Match warehouse sizing to the concurrency number from step 2.</td></tr>
+          <tr><td>7</td><td>Governance &amp; security</td><td>4</td><td>Unity Catalog hierarchy, row/column-level controls, PII tagging, lineage, audit logs, secrets and service principals. Name the personas and what each can see.</td></tr>
+          <tr><td>8</td><td>Operations</td><td>6</td><td>Monitoring and alerting, quality gates that block vs warn, failure handling (retries, quarantine, dead-letter), backfill and reprocessing strategy, runbooks and on-call.</td></tr>
+          <tr><td>9</td><td>Cost</td><td>3</td><td>Derive compute from the step-2 numbers: job clusters vs all-purpose, autoscaling, spot, Photon, serverless auto-stop, OPTIMIZE cadence, storage tiering. Give a rough monthly figure and the biggest lever.</td></tr>
+        </tbody>
+      </table>
+
+      <p>That is 44 minutes; the last minute is your summary: restate the SLA, the two riskiest decisions, and what you would prototype first. If the interviewer drags you deep into one box, compress steps 6&ndash;9 into a 90-second sweep rather than skipping them &mdash; say each headline and the one decision that matters.</p>
+
+      <div class="callout warn">The most common failure mode in lakehouse design interviews is spending 20 minutes lovingly detailing ingestion and never reaching governance, operations, or cost. The second most common is quoting no numbers at all. An architecture without volumes and SLAs is a clip-art diagram; interviewers explicitly probe whether your cluster sizing and latency claims trace back to the numbers you wrote down in step 2.</div>
+
+      <h3>Whiteboard layout</h3>
+      <p>Draw the canvas before the architecture. Left-to-right data flow in planes, governance and operations as horizontal bands underneath (they span everything), and a numbers box top-right that you fill during step 2 and point back at constantly. Label SLAs on the arrows, not in your head.</p>
+      <pre><code>+------------------------------------------------------[ NUMBERS ]-+
+| SOURCES -&gt; INGEST -&gt; BRONZE -&gt; SILVER -&gt; GOLD -&gt; SERVE | 2B ev/d |
+|   (per-   (pattern   (raw,    (valid,   (star,   (BI,  | 2TB/day |
+|   system)  per src)   immut.)  SCD2)     KPIs)    ML)  | SLA 5m  |
++-------------------------------------------------------------------+
+| GOVERNANCE: Unity Catalog · RLS/CLS · lineage · audit             |
++-------------------------------------------------------------------+
+| OPERATIONS: orchestration · monitoring · DQ gates · backfill      |
++-------------------------------------------------------------------+</code></pre>
+      <div class="callout tip">Practice the empty canvas until you can draw it in under 30 seconds. It signals process before you have said a word, and it guarantees the governance/ops bands exist on the board so you cannot forget to fill them.</div>
+
+      <div class="callout interview"><p><strong>"Design a pipeline that ingests heterogeneous sources into a lakehouse. Address latency, schema evolution, and access control."</strong> &mdash; the canonical prompt, near-verbatim from candidate reports.</p><p>Strong outline: clarify consumers and freshness first (two minutes of questions); quantify volumes; then per-source ingestion patterns into an append-only Bronze with permissive schema and rescued-data capture; Silver enforces contracts (schema enforcement on, explicit evolution via <code>mergeSchema</code> or versioned DDL, drift alerts); Gold serves BI and ML. Latency: state the SLA per consumer and pick batch, micro-batch, or streaming per table &mdash; not one mode for everything. Access control: Unity Catalog with catalog-per-environment, groups not users, row filters and column masks on PII, lineage for impact analysis. Close with failure handling and cost. That ordering &mdash; requirements before boxes &mdash; is most of the grade.</p></div>
+
+      <h2>Curveballs you will get, and answers that hold up</h2>
+      <details><summary>Late-arriving data</summary><p>Separate event time from processing time. In streaming, a watermark (e.g., <code>withWatermark("event_time", "2 hours")</code>) bounds state and admits events up to that lateness into aggregates; later events still land in Bronze because Bronze is append-only and unconditional. Pair the streaming layer with a periodic batch correction job that recomputes affected aggregate windows from Bronze. In batch finance pipelines, the equivalent is a rolling re-merge window: every run re-MERGEs the last N days keyed on business keys, so a journal posted late simply lands on the next run. Say the trade-off out loud: bigger watermark = more state and cost; smaller = more corrections downstream.</p></details>
+      <details><summary>GDPR / right-to-be-forgotten in a lakehouse</summary><p><code>DELETE FROM</code> on Delta rewrites files but old versions survive in time travel, so the data is not gone until <code>VACUUM</code> removes unreferenced files past the retention window &mdash; set retention to fit your compliance deadline (e.g., 30 days) and run VACUUM on schedule. Propagate deletes downstream via Change Data Feed so Silver/Gold and any derived copies also purge. Use Unity Catalog lineage to find every copy, including exports. Mention crypto-shredding (encrypt PII per subject, destroy the key) as the pattern when physical rewrite everywhere is impractical.</p></details>
+      <details><summary>Schema evolution breaking downstream consumers</summary><p>Treat the Bronze/Silver boundary as a contract. Bronze is permissive: new columns are captured (schema evolution or a rescued-data column) and nothing fails. Silver enforces: schema enforcement on by default, evolution only by explicit, reviewed change. Detect drift and alert on it before consumers notice. Expose Gold through views so additive changes are invisible and breaking changes ship as a versioned view (<code>v2</code>) with a deprecation window. The interviewer is checking that you protect consumers without making ingestion brittle.</p></details>
+      <details><summary>"How do you get exactly-once?"</summary><p>Be precise: Structured Streaming gives exactly-once <em>results</em> into Delta via checkpointed offsets plus transactional commits &mdash; replayed micro-batches are detected and not double-applied. Across arbitrary sinks or in <code>foreachBatch</code>, you get at-least-once delivery and must make the write idempotent yourself (idempotent MERGE on business keys, or transactional version markers). The honest phrase is "effectively-once end to end: at-least-once delivery plus idempotent writes." Claiming unconditional exactly-once across systems is a red flag they probe for.</p></details>
+      <details><summary>Reprocessing a bad day of data</summary><p>Because Bronze is immutable, you can always rebuild downstream. Sequence: stop or fence affected jobs; quantify blast radius with lineage; if the bad write was yesterday's run, <code>RESTORE</code> the table to the prior version (time travel) for instant rollback; fix the logic; replay the affected date range through parameterized, idempotent backfill jobs (run-date as a parameter, MERGE not append, so re-runs are safe); validate against control totals before unfencing consumers. Mention testing the fix on a clone of the table before touching production.</p></details>
+      <details><summary>Multi-region</summary><p>First ask which problem it is: data residency (data must <em>stay</em> in region) or disaster recovery (data must <em>survive</em> a region). Residency: regional workspaces with region-scoped catalogs, aggregate only what is legally shareable. DR: storage-level replication or scheduled Delta deep clones to a secondary region, with IaC to re-create workspaces and jobs; state your RPO/RTO and note that cross-region egress and duplicate storage are the cost drivers. Active-passive is almost always the right answer for analytics; active-active is rarely worth it.</p></details>
+
+      <h2>Worked Design A &mdash; daily-close enterprise finance lakehouse</h2>
+      <p><strong>Requirements.</strong> Consolidate general ledger and sub-ledger data from multiple ERPs (SAP, JDE) plus a consolidation system (HFM) into one governed platform. Daily trial-balance refresh by 06:00; a hard month-end close window where the books must reconcile to source to the cent; full auditability (immutable raw, lineage, multi-year retention, reproducibility of any past report); consumers are CFO-level dashboards and finance analysts doing ad hoc drill-down.</p>
+      <p><strong>Capacity estimate.</strong> Volume is modest, correctness is brutal: say 30&ndash;50 core source tables, tens of millions of journal lines per month, daily incrementals of 5&ndash;20 GB, low single-digit TB per year of growth. The constraint is not throughput &mdash; it is the dependency chain: ERP batch close finishes ~01:00, reports due 06:00, so the entire pipeline has a five-hour window with reconciliation gates inside it.</p>
+      <pre><code>SAP / JDE (CDC or delta extracts)   HFM (file)   DB2 (JDBC)
+        |                                |            |
+        v                                v            v
+  ADF / scheduled ingestion --&gt; ADLS + Delta BRONZE (raw, immutable)
+        |                                          [01:00-02:30]
+        v
+  SILVER: conformed dims (account, entity, cost center; SCD2),
+          FX rates, validated journal facts
+          GATE: debits = credits, control totals vs source
+        |                                          [02:30-04:30]
+        v
+  GOLD: star schemas + KPI marts (P&amp;L, Budget vs Actual)
+        |                                          [04:30-05:30]
+        v
+  SQL warehouse --&gt; Power BI (refresh by 06:00)   [SLA 06:00]</code></pre>
+      <p><strong>Walkthrough.</strong> Ingestion is CDC where the source supports it, vendor delta extracts or file drops where it does not; every load is idempotent (MERGE on document keys) so a re-run never double-posts a journal. Bronze is append-only with load metadata for audit. Silver conforms dimensions across ERPs &mdash; the real work is mapping three charts of accounts onto one &mdash; with SCD Type 2 on account, entity, and cost-center hierarchies so any historical report reproduces under the hierarchy that was true at the time. Reconciliation is a <em>blocking</em> gate, not a dashboard: if control totals do not match source, Gold does not publish and on-call gets paged, because publishing wrong numbers to a CFO is strictly worse than publishing late. Gold is dimensional star schemas plus pre-aggregated KPI marts. Orchestration is a DAG with explicit dependency on ERP-close completion signals, often coordinated by an enterprise scheduler that owns the cross-system chain end to end, with the BI refresh as the final task.</p>
+      <p><strong>Trade-offs.</strong> Batch, not streaming &mdash; finance wants reconciled-correct, not fresh-but-provisional, and the close calendar is inherently batch. SCD2 everywhere costs storage and join complexity but is non-negotiable for restatements. Blocking quality gates trade availability for trust; for this consumer that is the right trade. Month-end adds 5&ndash;10x volume in a shorter window: handle with autoscaling job clusters, not year-round overprovisioning.</p>
+      <p><strong>Cost.</strong> Compute is small &mdash; right-sized job clusters with Photon, a serverless SQL warehouse with auto-stop for analysts, scheduled OPTIMIZE. The dominant costs are people and source-system licensing, so say so: in this design your FinOps story is mostly about not running all-purpose clusters for production jobs and not letting BI warehouses idle.</p>
+
+      <div class="callout story">Design A is your home turf &mdash; claim it. At ADM you lead Finance Record-to-Report analytics delivery end to end: Bronze/Silver/Gold medallion pipelines on Azure Databricks and ADF integrating JDE, SAP, HFM, IBM DB2, and IBM APGO Web Wire into Delta Lake under Unity Catalog governance, feeding P&amp;L, Budget-vs-Actual, and Expense Forecasting KPIs to Executive Committee and CFO-level consumers &mdash; orchestrated across ADF, Databricks Workflows, and Power BI refresh via Redwood RunMyJobs, with runbooks and hypercare through Azure DevOps. Before that, Maersk's Fact-Based Reporting program: SAP S/4HANA and ACDOCA Universal Journal plus HFM into an Azure lakehouse with metadata-driven ADF + PySpark, served through Synapse and a Dremio + Power BI semantic layer. When they ask "have you actually built this?", the answer is "twice, at two Fortune-500-scale enterprises" &mdash; then walk the close-window orchestration, reconciliation gates, and SCD2 hierarchy decisions in concrete detail, because you own them.</div>
+
+      <h2>Worked Design B &mdash; clickstream analytics at billions of events/day</h2>
+      <p><strong>Requirements.</strong> Product clickstream from web and mobile SDKs; near-real-time dashboards (1&ndash;5 minute freshness) for ops and growth teams; sessionization and funnel analysis; deduplication (SDKs retry); events arrive late by minutes to hours; app teams add event properties weekly without telling anyone.</p>
+      <p><strong>Capacity estimate.</strong> 2B events/day &asymp; 23K events/sec average; assume peak 5x &asymp; 120K events/sec. At ~1 KB/event that is ~2 TB/day raw, ~60 TB/month; 13 months of raw retention lands you near 800 TB before compression. These numbers drive everything: Kafka/Event Hubs partition counts, streaming cluster size, and why storage lifecycle policy is a first-class design decision, not an afterthought.</p>
+      <pre><code>Web/mobile SDKs --&gt; Kafka / Event Hubs (buffer, replay)
+        |
+        v  Structured Streaming (micro-batch ~1 min)
+  BRONZE: append-only events, permissive schema + _rescued_data
+        |
+        v  dedup on event_id within watermark; parse/flatten
+  SILVER: clean events (liquid-clustered: event_date, event_type)
+        |                          |
+        v  streaming agg            v  nightly batch (availableNow)
+  GOLD: per-minute counters    GOLD: sessions, funnels,
+        (drive live dashboards)      late-data corrections
+        |                          |
+        +-----------&gt; SQL warehouse --&gt; dashboards [SLA 5 min]</code></pre>
+      <p><strong>Walkthrough.</strong> The message bus decouples producers from the platform and gives you replay. Streaming ingestion lands events in Bronze with no validation &mdash; permissive schema plus a rescued-data column so a new property never drops an event. Silver dedups on event ID within the watermark window and enforces the contract. Hot Gold tables are streaming aggregations feeding live dashboards; heavy work (sessionization, funnels) runs as nightly batch over Silver, which also recomputes any window touched by events that arrived after the watermark &mdash; the dashboards self-correct overnight. The dedup core:</p>
+      <pre><code>events = (spark.readStream.table("bronze.events")
+  .withWatermark("event_time", "2 hours")
+  .dropDuplicates(["event_id", "event_time"]))
+# late &gt; 2h: excluded from streaming state, but still in Bronze;
+# the nightly job re-aggregates affected windows from Bronze.</code></pre>
+      <p><strong>Trade-offs.</strong> A 2-hour watermark balances state size against correction volume &mdash; defend whichever number you pick with the lateness distribution from step 2. The streaming-plus-batch-correction split is deliberately lambda-flavored: pure streaming for everything is cleaner on the slide and more expensive and stateful in production. Micro-batch around one minute meets a 5-minute SLA at a fraction of the cost of chasing seconds. Liquid clustering over hive-style partitioning avoids the small-file and high-cardinality traps at this volume.</p>
+      <p><strong>Cost.</strong> The 24/7 streaming cluster is the dominant compute cost &mdash; size it from peak events/sec and protect it from skew. Run warm-but-not-hot aggregates with <code>Trigger.AvailableNow</code> on a schedule instead of continuously. Storage at ~800 TB makes lifecycle tiering of aged Bronze and aggressive compaction (OPTIMIZE) genuinely material, not hygiene.</p>
+
+      <div class="callout interview"><p><strong>"Your streaming job crashed and restarted. The dashboard counted some events twice &mdash; why, and how do you prevent it?"</strong></p><p>Strong outline: Structured Streaming replays the failed micro-batch from the checkpoint, so the source is at-least-once on restart. Writing to Delta, the commit protocol makes the replay idempotent &mdash; the batch is transactionally applied once. Double counting appears when something non-idempotent sits in the path: a <code>foreachBatch</code> appending to an external sink, an aggregate maintained by blind increments, or two jobs sharing a checkpoint incorrectly. Fixes: keep checkpoints per query, write results not increments, make foreachBatch writes idempotent (MERGE on keys or batch-version markers). Close with: "and I would prove it by killing the job mid-batch in staging and diffing the counts."</p></div>
+
+      <h2>Worked Design C &mdash; ML + GenAI platform on the lakehouse</h2>
+      <p><strong>Requirements.</strong> The lakehouse from Designs A/B exists; now layer on: feature pipelines for churn/forecast models, a RAG assistant over internal policy documents, natural-language Q&amp;A over governed tables, online serving, and &mdash; the part most candidates skip &mdash; evaluation and monitoring so the thing stays trustworthy after launch. PII governance applies to features, prompts, and logs, not just tables.</p>
+      <p><strong>Capacity estimate.</strong> Keep it concrete: ~10M customer rows refreshed daily into ~50 features; a document corpus of ~100K pages chunking to ~1M vectors; interactive load of tens of QPS on serving endpoints; every request/response logged for evaluation. Small data, but latency-sensitive serving and per-token LLM cost change the economics completely.</p>
+      <pre><code>SILVER/GOLD tables          Docs (PDF, HTML, wikis)
+      |                            |
+      v                            v  parse -&gt; chunk -&gt; embed
+  Feature pipelines          Delta chunk table
+      |                            |  (delta-sync)
+      v                            v
+  UC feature tables          Vector Search index
+      |                            |
+      v                            v
+  MLflow train/registry      RAG agent (LLM endpoint + retrieval)
+      |                            |        + Text2SQL/Genie path
+      v                            v
+  Model Serving  &lt;---- router / multi-agent ----&gt;  App / UI
+      |
+      v
+  Inference tables --&gt; eval harness + drift monitoring</code></pre>
+      <p><strong>Walkthrough.</strong> Features are computed by the same governed pipelines as everything else and registered as Unity Catalog feature tables, so training and serving read identical definitions &mdash; that one sentence kills the train/serve-skew question. Models train under MLflow tracking and promote through the registry. On the GenAI side, document parsing/chunking/embedding is just another incremental pipeline writing a Delta table; the vector index syncs from that table, so document updates flow to retrieval without a parallel stack. The assistant routes by intent: structured questions go to a SQL-grounded path over governed tables (Genie-style, showing the generated query builds trust); policy questions go to RAG with citations; a router agent fronts both. Everything is logged to inference tables; evaluation is a curated golden Q&amp;A set scored on every change (LLM-as-judge plus human spot checks), and monitoring watches retrieval hit rates, answer quality drift, latency, and token spend. Access control is the hard requirement: the agent must respect row- and column-level permissions of the <em>asking user</em>, not of a privileged service account.</p>
+      <p><strong>Trade-offs.</strong> RAG over fine-tuning for policy knowledge that changes monthly &mdash; cheaper to update, citable, auditable. Managed vector search synced from Delta over an external vector DB &mdash; one governance and lineage story instead of two. Batch daily features over real-time unless a use case proves it needs sub-hour freshness, because streaming features double the operational surface. Scale-to-zero on dev/low-traffic endpoints versus cold-start latency on the ones users touch.</p>
+      <p><strong>Cost.</strong> Token spend and always-warm serving endpoints dominate; pipelines are rounding error. Levers: smaller/cheaper models behind the router for easy intents, response caching, batching embedding refresh, scale-to-zero where latency tolerates it, and per-endpoint budget alerts from day one &mdash; GenAI is the one workload where cost can 10x silently from adoption alone.</p>
+
+      <div class="callout story">You shipped this pattern in production. At ADM you built three GenAI agents on Databricks over HR data (PeopleSoft + SAP labor data): a Corporate Headcount &amp; Salaries agent via a Genie Space that shows its generated SQL for trust; an Employee Policy RAG assistant on Databricks Vector Search and LLM endpoints with cited answers; and a combined multi-agent assistant with intent routing &mdash; all delivered as a Databricks App with a custom Streamlit UI, embedded Genie Space and dashboards, and Unity Catalog row- and column-level permissions for HR users. In a design interview, the credibility line is: "I have shipped this &mdash; the hard parts were not the LLM, they were permissions on sensitive HR data and earning user trust by showing the query and the citations."</div>
+
+      <h2>The three designs, side by side</h2>
+      <table>
+        <thead><tr><th></th><th>A &mdash; Finance close</th><th>B &mdash; Clickstream</th><th>C &mdash; ML + GenAI</th></tr></thead>
+        <tbody>
+          <tr><td>Driving constraint</td><td>Correctness + audit + close window</td><td>Throughput + freshness</td><td>Trust, latency, token economics</td></tr>
+          <tr><td>Latency posture</td><td>Daily batch, hard 06:00 SLA</td><td>Minutes (streaming + batch correction)</td><td>Interactive serving; batch pipelines</td></tr>
+          <tr><td>Ingestion pattern</td><td>CDC + governed extracts, idempotent MERGE</td><td>Message bus + Structured Streaming</td><td>Reuses A/B + doc parsing/embedding</td></tr>
+          <tr><td>Hardest problem</td><td>Reconciliation gates, SCD2 hierarchies</td><td>Late data, dedup, state management</td><td>Permission-aware retrieval, evaluation</td></tr>
+          <tr><td>Dominant cost</td><td>People; compute is small</td><td>24/7 streaming compute + storage</td><td>LLM tokens + warm endpoints</td></tr>
+          <tr><td>Failure stance</td><td>Block publish, page on-call</td><td>Degrade freshness, self-correct overnight</td><td>Fall back to citation-only / refuse</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">Be precise about which tools are production experience versus study knowledge. Your production orchestration story is Databricks Workflows/Jobs + ADF + Redwood RunMyJobs; Auto Loader, COPY INTO, and declarative pipelines are things you can design with fluently from lab work &mdash; say "in this design I'd use Auto Loader; in my production environments ingestion ran through ADF" rather than blurring the line. Interviewers respect the distinction and probe for it.</div>
+
+      <p>Run each design as a full 45-minute rehearsal against the clock, out loud, drawing the canvas first. Then swap the scenario (IoT telemetry, retail orders, healthcare claims) and notice that the nine steps do not change &mdash; only the numbers and the trade-offs do. That realization is the whole module.</p>
+    </article>
+
+    <div class="pagenav"><a href="prep-coding.html"><span class="label">Previous</span>PySpark &amp; SQL Drills</a><a class="next" href="prep-behavioral.html"><span class="label">Next</span>STAR Story Bank</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

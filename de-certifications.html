@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Certification Roadmap · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="de-track.html">Data Engineer Track</a> / Certification Roadmap</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge de">DE Track · Module 10</span>
+        <h1>Certification Roadmap</h1>
+        <p class="lede">The exact path from seven existing certifications to Databricks DE Associate and Professional.</p>
+      </header>
+
+      <h2>Why these two certs, and why now</h2>
+      <p>You already hold seven certifications — DP-700, DP-600, DP-203, DP-900, AZ-900, Databricks Lakehouse Fundamentals, and Dremio Verified Lakehouse Associate — and you have years of production Azure Databricks behind them. So the Databricks Certified Data Engineer Associate is not about proving you can do the job. It is about two narrower things:</p>
+      <ul>
+        <li><strong>Signal for Databricks-adjacent and Databricks-internal roles.</strong> Partner SIs, Databricks-heavy product companies, and Databricks itself (delivery, field engineering, RSA-style roles) filter on vendor certs because they are the cheapest way to verify platform fluency at scale. Your Microsoft certs validate Azure breadth; only the Databricks certs validate Databricks depth in the vendor's own vocabulary.</li>
+        <li><strong>Forcing function for current terminology.</strong> There is a real vocabulary gap to close: your production vocabulary is circa-2024 ("Workflows," "partitioning + Z-ORDER"), and even the tools you only know from study material still carry their old names there ("DLT," "Asset Bundles") — while the platform renamed almost all of it in 2025–2026. Studying for the May 2026 Associate blueprint forces you to absorb the new names — Lakeflow Jobs, Lakeflow Spark Declarative Pipelines, Declarative Automation Bundles, liquid clustering — exactly the words an interviewer at Databricks will use.</li>
+      </ul>
+
+      <div class="callout story">
+        <p>At ADM you orchestrate Finance R2R pipelines with Databricks Jobs/Workflows alongside ADF and Redwood RunMyJobs, and you tuned Delta with partitioning, compaction, and Z-ORDER. Every one of those is now the <em>legacy</em> answer on the exam and in a Databricks interview: the orchestrator is "Lakeflow Jobs" (the UI sidebar literally says "Jobs &amp; Pipelines"), and the recommended layout for new tables is liquid clustering — ideally <code>CLUSTER BY AUTO</code> — not partitioning plus Z-ORDER. Nothing about your experience is wrong; the names moved underneath it. The Associate exam is the cheapest way to systematically re-label everything you already know.</p>
+      </div>
+
+      <h2>Data Engineer Associate — the current exam</h2>
+      <p>The Associate blueprint was overhauled twice recently: a major revamp on July 25, 2025, then the current seven-section version effective May 4, 2026 (the old version retired May 3, 2026). Everything below is the May 2026 version; always confirm against the current exam guide PDF before booking.</p>
+
+      <table>
+        <tr><th>Logistics</th><th>Detail (as of mid-2026)</th></tr>
+        <tr><td>Questions</td><td>45 scored multiple-choice (plus possible unscored items)</td></tr>
+        <tr><td>Duration</td><td>90 minutes</td></tr>
+        <tr><td>Cost</td><td>USD 200 + tax per attempt</td></tr>
+        <tr><td>Delivery</td><td>Online proctored or test center; no test aids</td></tr>
+        <tr><td>Prerequisites</td><td>None; 6 months hands-on recommended</td></tr>
+        <tr><td>Validity</td><td>2 years; recertify by retaking the current live exam</td></tr>
+        <tr><td>Registration</td><td>webassessor.com/databricks; badge issued via credentials.databricks.com</td></tr>
+        <tr><td>Passing score</td><td>Not officially published (third parties claim roughly 70–80% — treat as unofficial)</td></tr>
+      </table>
+
+      <h3>Domains and weights (May 2026 blueprint)</h3>
+      <ol>
+        <li>Databricks Intelligence Platform — 6%</li>
+        <li>Data Ingestion and Loading — 21% (Auto Loader, COPY INTO, Lakeflow Connect standard/managed connectors, JDBC/REST)</li>
+        <li>Data Transformation and Modeling — 22% (PySpark/SQL, joins, dedup, tuning parameters, Gold objects: materialized views and streaming tables)</li>
+        <li>Working with Lakeflow Jobs — 16% (control flow, DAG tasks, scheduled / file-arrival / table-update triggers)</li>
+        <li>Implementing CI/CD — 10% (Databricks Git Folders, formerly Repos; "Automation Bundles / Declarative Automation Bundles," formerly Databricks Asset Bundles)</li>
+        <li>Troubleshooting, Monitoring, and Optimization — 10% (Spark UI skew/shuffle/spill, liquid clustering, predictive optimization)</li>
+        <li>Governance and Security — 15% (Unity Catalog managed vs external tables, GRANT/REVOKE/DENY, row/column masking, ABAC)</li>
+      </ol>
+
+      <h3>Domain-by-domain: what you know vs what to study fresh</h3>
+      <p>This is the honest gap analysis. "Production" means you have shipped it; "fresh" means lab-and-study knowledge only — never claim it as production experience in an interview.</p>
+      <table>
+        <tr><th>Exam domain (weight)</th><th>You already know this from production</th><th>Study fresh</th></tr>
+        <tr><td>Intelligence Platform (6%)</td><td>Day-to-day Azure Databricks: workspaces, notebooks, clusters, SQL warehouses</td><td>Current product framing and names: Data Intelligence Platform, Lakeflow umbrella, serverless as the default compute story</td></tr>
+        <tr><td>Ingestion and Loading (21%)</td><td>JDBC-style source integration patterns (JDE, SAP, HFM, DB2 via ADF into Delta); REST concepts</td><td><strong>Auto Loader and COPY INTO specifics</strong> (schema inference/evolution, <code>cloudFiles</code> options, idempotency semantics); Lakeflow Connect managed connectors</td></tr>
+        <tr><td>Transformation and Modeling (22%)</td><td>PySpark/SQL joins, dedup, medallion modeling, SCD/CDC design — your strongest domain</td><td>Streaming tables vs materialized views as Gold objects; which object type the exam expects for a given scenario</td></tr>
+        <tr><td>Lakeflow Jobs (16%)</td><td>Multi-task job DAGs, scheduling, retries — you run this in production (as "Workflows") with ADF and RunMyJobs around it</td><td>New trigger types: file-arrival and table-update triggers; current control-flow task types (condition, for-each)</td></tr>
+        <tr><td>CI/CD (10%)</td><td>Azure DevOps pipelines, code review discipline, release runbooks</td><td><strong>Bundles</strong> (Declarative Automation Bundles, formerly DABs): <code>databricks.yml</code>, targets, <code>databricks bundle deploy/run</code>; Git Folders naming</td></tr>
+        <tr><td>Troubleshooting and Optimization (10%)</td><td>Spark UI skew/shuffle/spill diagnosis, cluster right-sizing, compaction from your FinOps work</td><td>Liquid clustering and <code>CLUSTER BY AUTO</code>; predictive optimization behavior on UC managed tables</td></tr>
+        <tr><td>Governance and Security (15%)</td><td>Unity Catalog daily: managed vs external tables, row- and column-level permissions on HR data for the GenAI agents</td><td>Exact GRANT/REVOKE/DENY semantics, masking function syntax, ABAC framing</td></tr>
+      </table>
+
+      <p>Net: roughly 60–65% of the blueprint weight sits on things you do every week. The concentrated risk is the ingestion domain (21%) plus declarative pipelines wherever they surface in transformation questions — Lakeflow Spark Declarative Pipelines (the former DLT), Auto Loader, and COPY INTO are exactly the things your stack never required because ADF and Workflows covered ingestion and orchestration.</p>
+
+      <div class="callout interview">
+        <p><strong>"When would you use Auto Loader versus COPY INTO?"</strong> — a near-certain exam question and a common screen question. Strong outline: COPY INTO is a SQL command, idempotent by file name, good for low file counts and one-off or scheduled batch loads into an existing table. Auto Loader (<code>cloudFiles</code> source in Structured Streaming) scales to millions of files, tracks state in a checkpoint, supports schema inference and evolution with rescue data, and is the default for continuous or high-volume ingestion — and it is what Lakeflow Spark Declarative Pipelines use under the hood for file sources. Be upfront that your production ingestion ran through ADF metadata-driven pipelines, then pivot: "same idempotency and incremental-load problems, different tool — here is how I'd map my ADF watermark pattern onto Auto Loader checkpoints."</p>
+      </div>
+
+      <h3>The renaming layer you must internalize</h3>
+      <p>The May 2026 exam guide uses the new names with the old ones in parentheses. Learn both directions, because interviewers mix them too:</p>
+      <ul>
+        <li>Delta Live Tables (DLT) → <strong>Lakeflow Spark Declarative Pipelines</strong> (billing SKUs still say DLT)</li>
+        <li>Databricks Workflows → <strong>Lakeflow Jobs</strong></li>
+        <li>Databricks Asset Bundles → <strong>Declarative Automation Bundles</strong> (renamed March 2026; CLI is still <code>databricks bundle</code>)</li>
+        <li>Repos → <strong>Databricks Git Folders</strong></li>
+        <li>Lakehouse Platform → <strong>Data Intelligence Platform</strong> ("lakehouse" survives only as the architecture concept)</li>
+      </ul>
+      <p>The code-level rename matters for pipeline questions:</p>
+      <pre><code># Old DLT style (still widely shown in third-party courses)
+import dlt
+
+@dlt.table
+def bronze_orders():
+    return spark.readStream.format("cloudFiles") \
+        .option("cloudFiles.format", "json") \
+        .load("/Volumes/finance/raw/orders")
+
+# Current Lakeflow Spark Declarative Pipelines style
+from pyspark import pipelines as dp
+
+@dp.table
+def bronze_orders():
+    return spark.readStream.format("cloudFiles") \
+        .option("cloudFiles.format", "json") \
+        .load("/Volumes/finance/raw/orders")</code></pre>
+
+      <div class="callout warn">
+        <p>Most popular practice tests (Udemy and similar) were written for the pre-July-2025 or the July-2025 blueprint, not the May 2026 one. Weights, section names, and product names will be stale: expect "DLT," "Workflows," and "DABs" where the live exam says Lakeflow and Declarative Automation Bundles. Use third-party tests for drilling mechanics only, and treat the official exam guide PDF (which includes sample questions) as the single source of truth for scope. If anything on this page conflicts with the guide you download on registration day, the guide wins — check the current exam guide.</p>
+      </div>
+
+      <h2>Data Engineer Professional — what changes</h2>
+      <p>The Professional exam was rebuilt and went live September 30, 2025. As of mid-2026: 59 scored questions, 120 minutes, USD 200, same four languages (English, Japanese, Portuguese-BR, Korean), 2-year validity, with 1 year of hands-on experience recommended. Ten domains:</p>
+      <ul>
+        <li>Developing Code for Data Processing using Python and SQL — 22%</li>
+        <li>Cost and Performance Optimization — 13%</li>
+        <li>Data Transformation, Cleansing, and Quality — 10%</li>
+        <li>Monitoring and Alerting — 10%</li>
+        <li>Data Security and Compliance — 10%</li>
+        <li>Debugging and Deploying — 10%</li>
+        <li>Data Ingestion and Acquisition — 7%</li>
+        <li>Data Governance — 7%</li>
+        <li>Data Modeling — 6%</li>
+        <li>Data Sharing and Federation — 5%</li>
+      </ul>
+      <p>How it differs from the Associate in practice:</p>
+      <ul>
+        <li><strong>More code, deeper Spark.</strong> The 22% code domain expects bundle-optimized Python project structure, Pandas/Python UDF tradeoffs, and testing utilities like <code>assertDataFrameEqual</code> / <code>assertSchemaEqual</code> — scenario questions, not definitions.</li>
+        <li><strong>Streaming semantics.</strong> Structured Streaming vs declarative pipelines tradeoffs, <code>APPLY CHANGES</code> for CDC, streaming tables vs materialized views. This is your largest genuine gap, since your production stack was batch and near-real-time via ADF triggers rather than Structured Streaming.</li>
+        <li><strong>Modeling, security, monitoring as first-class domains.</strong> SCD/CDC modeling (you are strong here), row filters and column masks (you run these on HR data), alerting and observability (your hypercare/runbook experience maps directly).</li>
+        <li><strong>Platform breadth.</strong> Delta Sharing, Lakehouse Federation, liquid clustering, serverless, CLI and REST API.</li>
+      </ul>
+      <p>Recommended gap from the Associate: do not chain them back-to-back. Databricks recommends a year of hands-on for the Professional; given your nine-plus years, a realistic compression is 3–6 months after the Associate, spent deliberately building the streaming and declarative-pipeline lab mileage the Associate only samples.</p>
+
+      <div class="callout story">
+        <p>The Professional's security and governance domains are the ones where you can answer from scars rather than slides: at ADM you enforced Unity Catalog row- and column-level permissions on PeopleSoft and SAP labor data so HR users of the GenAI agents only saw rows they were entitled to, behind a Databricks App. When a Professional-level question asks "row filter vs column mask vs separate secured view," you have a production decision to reason from — say what you chose, why, and what you would reconsider under ABAC.</p>
+      </div>
+
+      <h2>What your Microsoft certs already bought you</h2>
+      <p>DP-203 (Azure Data Engineer), DP-600, and DP-700 (Fabric) overlap heavily with the Associate conceptually. The trap is assuming concept overlap means syntax overlap.</p>
+      <table>
+        <tr><th>Concept</th><th>Covered by DP-203/600/700</th><th>Databricks-specific delta to study</th></tr>
+        <tr><td>Medallion architecture</td><td>Yes — identical Bronze/Silver/Gold framing</td><td>Gold as streaming tables / materialized views, not just tables and views</td></tr>
+        <tr><td>Incremental ingestion</td><td>Yes — ADF/Fabric pipelines, watermarks, COPY activity</td><td>Auto Loader checkpoints and schema evolution; COPY INTO idempotency; file-arrival triggers</td></tr>
+        <tr><td>Delta Lake format</td><td>Yes — Fabric OneLake uses Delta too</td><td>Databricks-side features: liquid clustering, deletion vectors, predictive optimization, <code>OPTIMIZE</code>/<code>VACUUM</code> semantics</td></tr>
+        <tr><td>Orchestration</td><td>Yes — pipelines, triggers, dependencies</td><td>Lakeflow Jobs task types, repair runs, table-update triggers — different vocabulary, different knobs</td></tr>
+        <tr><td>Governance</td><td>Partially — Purview/Fabric permissions model</td><td>Unity Catalog three-level namespace, GRANT/DENY semantics, managed vs external table behavior on DROP</td></tr>
+        <tr><td>CI/CD</td><td>Yes — Azure DevOps, deployment pipelines</td><td>Bundles: <code>databricks.yml</code> targets and overrides; Git Folders workflow</td></tr>
+        <tr><td>Spark tuning</td><td>Lightly — DP-203 touches Spark pools</td><td>Spark UI forensics (skew, shuffle, spill), AQE behavior, cluster vs serverless tradeoffs</td></tr>
+      </table>
+
+      <div class="callout interview">
+        <p><strong>"You already have DP-203 and two Fabric certs. Why does the Databricks Associate add anything?"</strong> Strong outline: (1) Microsoft certs validate the Azure ecosystem around Databricks — ADF, Synapse, Fabric — which matches how I actually shipped: ADF plus Azure Databricks. (2) The Databricks cert validates the platform-native layer those certs skip: Unity Catalog privilege semantics, Lakeflow Jobs and Declarative Pipelines, Auto Loader, bundles. (3) Concretely, I could run production Delta workloads for years without ever writing <code>CLUSTER BY AUTO</code> or a <code>databricks.yml</code> — the cert closes exactly that gap and updates my vocabulary to the 2026 platform. That answer shows self-awareness, not certificate-collecting — and until the exam is actually passed, frame it as "scheduled," consistent with the honesty rule at the end of this page.</p>
+      </div>
+
+      <h2>Study resources, in priority order</h2>
+      <ol>
+        <li><strong>Official exam guide PDF</strong> for the May 2026 Associate — domains, objectives, and sample questions. Re-download before booking; it changed twice in ten months.</li>
+        <li><strong>Databricks Academy self-paced courses</strong> (free with login). The guide names them for the Associate: Data Ingestion with Lakeflow Connect; Deploy Workloads with Lakeflow Jobs; DevOps Essentials for Data Engineering; Data Interoperability with Unity Catalog; Build Data Pipelines with Lakeflow Spark Declarative Pipelines; Get Started with Data Governance on Databricks. For the Professional: Databricks Streaming and Lakeflow Declarative Pipelines; Data Privacy; Performance Optimization; Automated Deployment with Databricks Asset Bundles.</li>
+        <li><strong>Hands-on labs you cannot skip.</strong> Use Databricks Free Edition (the successor to the old Community Edition) or a free trial workspace (your ADM workspace is for ADM work, and you likely cannot experiment with bundles there). Minimum lab list: build one declarative pipeline end to end with <code>@dp.table</code> decorators and expectations; ingest with Auto Loader and force a schema change; load the same files with COPY INTO and re-run it to see idempotency; scaffold and deploy a bundle with <code>databricks bundle init / validate / deploy / run</code> against dev and prod targets.</li>
+        <li><strong>Practice exams</strong> — third-party (Udemy, e.g. Derar Alhussein; certificationpractice.com) for question-handling stamina, with the staleness caveat above. These are not official.</li>
+        <li><strong>This site's modules</strong> — the <a href="de-devops.html">DevOps module</a> covers bundles and Git Folders in depth, and the <a href="prep-study-plan.html">study plan</a> sequences all of it.</li>
+      </ol>
+
+      <div class="callout tip">
+        <p>Drill the exam guide's own sample questions last, under time pressure: 45 questions in 90 minutes is two minutes per question, and the Professional is tighter at just over two minutes for harder scenarios. Your practice target on third-party tests should be comfortably above the rumored 70–80% band — but since Databricks does not publish a passing score, treat "consistently 85%+ on fresh practice sets" as your go/no-go signal, not any specific cutoff.</p>
+      </div>
+
+      <h2>Exam-day tactics</h2>
+      <ul>
+        <li><strong>Online proctoring setup:</strong> clean desk, webcam sweep, no second monitor, government ID ready. If your home setup is uncertain, book a test center — one fewer variable.</li>
+        <li><strong>Triage pass first:</strong> answer everything you know cold (your Delta, UC, jobs, and modeling questions), flag the rest. Banking 25–30 fast answers buys you time for ingestion and pipeline scenarios.</li>
+        <li><strong>Translate names in your head:</strong> when a question says "Lakeflow Spark Declarative Pipelines" read it as "DLT," answer from concept, then re-check the answer options for new-name distractors.</li>
+        <li><strong>Eliminate by platform defaults:</strong> when two options both seem plausible, the current-recommendation option usually wins — liquid clustering over partitioning, serverless over manually sized clusters, UC-managed tables over external unless the question gives a reason.</li>
+        <li><strong>Unscored items exist:</strong> a bizarre question may be experimental. Answer and move on; do not let it burn five minutes.</li>
+      </ul>
+
+      <h2>Realistic timeline</h2>
+      <p>Consistent with the <a href="prep-study-plan.html">8-week plan</a>:</p>
+      <ul>
+        <li><strong>Weeks 1–4:</strong> work through the DE track modules; stand up a Free Edition workspace in week 1; do the four mandatory labs (declarative pipeline, Auto Loader, COPY INTO, bundle deploy) across weeks 2–4 alongside the Academy self-paced courses.</li>
+        <li><strong>Week 4:</strong> first full practice exam; gap-fix from the wrong answers, weighted by blueprint percentage (a miss in the 22% transformation domain matters more than one in the 6% platform domain).</li>
+        <li><strong>Week 5:</strong> sit the <strong>Data Engineer Associate</strong>. Booking the slot at the start of the plan is the commitment device.</li>
+        <li><strong>Weeks 6–8:</strong> shift to interview prep and the RSA track; let the fresh cert do its résumé work.</li>
+        <li><strong>Roughly 3–6 months later:</strong> sit the <strong>Professional</strong>, after deliberately accumulating streaming and declarative-pipeline lab depth — and ideally after introducing one of those patterns into real work where it fits. The Spark Developer Associate (rebuilt in 2025 on Spark 3.5, Python-only, 45 questions / 90 minutes / USD 200) is an optional detour if an RSA-style role asks for visible Spark-internals credentials.</li>
+      </ul>
+      <p>One honesty rule to carry into every interview between now and then: the Associate is planned for 2026, not earned. Say "scheduled" or "in progress," never list it as held — the certification is verifiable in thirty seconds on credentials.databricks.com, and the fastest way to lose an interviewer is to be loose about a checkable fact.</p>
+    </article>
+
+    <div class="pagenav"><a href="de-devops.html"><span class="label">Previous</span>DevOps on Databricks</a><a class="next" href="rsa-track.html"><span class="label">Next</span>Resident Solutions Architect Track</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

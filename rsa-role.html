@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The RSA Role, Decoded · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="rsa-track.html">Resident Solutions Architect Track</a> / The RSA Role, Decoded</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge rsa">RSA Track · Module 01</span>
+        <h1>The RSA Role, Decoded</h1>
+        <p class="lede">What Databricks Professional Services actually hires for, and how the interview loop tests it.</p>
+      </header>
+
+      <h2>What an RSA actually is</h2>
+      <p>A Resident Solutions Architect is a <strong>billable consultant in Databricks Professional Services</strong> — not Field Engineering. As of mid-2026, the careers site lists RSA roles under the "professional-services-operations" category. RSAs are embedded with customers on short-to-medium-term <strong>post-sales delivery engagements</strong>: designing and building reference architectures, productionizing data and AI use cases, and running third-party platform migrations end to end. The job description language is blunt about it — the RSA "completes projects according to specification." This is the SA-family role that actually builds.</p>
+      <p>Verified from current postings: RSAs scope work alongside Engagement Managers, provide escalated technical support during engagements, coordinate with project managers, other architects, and customer teams, and feed product feedback back to Databricks engineering. Postings are <strong>verticalized</strong> — Financial Services, Public Sector (US citizenship plus Top Secret clearance eligibility required), Healthcare &amp; Life Sciences, Manufacturing, CME &amp; Games, Digital Native Business — plus Senior RSA ML &amp; GenAI variants that explicitly require RAG, multi-agent systems, Text2SQL, fine-tuning (HuggingFace/LangChain/DSPy), and production GenAI deployment on Mosaic AI. Travel is listed up to roughly 30%. Posted US base salary: <strong>$180,656–$248,360</strong> plus bonus and equity; self-reported totals (Glassdoor avg ~$236K, levels.fyi SA-family median ~$363K) suggest meaningful upside, but treat those as directional, not verified.</p>
+
+      <h2>RSA vs the other "Solutions Architect" titles</h2>
+      <p>Databricks runs four distinct SA-flavored roles, and conflating them in an interview is a credibility hit. The split that matters: <strong>presales vs post-sales</strong>, and <strong>billable vs non-billable</strong>.</p>
+      <table>
+        <thead>
+          <tr><th>Role</th><th>Org</th><th>Phase</th><th>Billable?</th><th>What they actually do</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Solutions Architect (SA)</strong></td><td>Field Engineering</td><td>Presales</td><td>No</td><td>Account-aligned technical sale: demos, POCs, workshops, technical win for the account executive.</td></tr>
+          <tr><td><strong>Specialist SA (SSA)</strong></td><td>Field Engineering</td><td>Presales</td><td>No</td><td>Deep-domain expert (DE/DWH, AI/ML, streaming) who backs up SAs with advanced POC content and workload sizing.</td></tr>
+          <tr><td><strong>Delivery SA (DSA)</strong></td><td>Field Engineering</td><td>Post-sales</td><td><strong>No</strong></td><td>Evolved from Customer Success Engineer; drives adoption, go-live, and "healthy consumption" across assigned accounts.</td></tr>
+          <tr><td><strong>Resident SA (RSA)</strong></td><td>Professional Services</td><td>Post-sales</td><td><strong>Yes</strong></td><td>Hands-on embedded delivery: builds reference architectures, migrations, and production use cases against a statement of work.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout tip">
+        <p>The DSA/RSA distinction is the one people get wrong. Both are post-sales, but the DSA's success metric is account consumption and adoption health; the RSA's is <strong>delivered, billable project outcomes</strong>. If a hiring manager asks "why RSA and not DSA?", your answer is that you want to own delivery — architecture decisions, code, and go-live — not steer adoption from the sidelines. Your nine years are delivery years; that is the honest fit.</p>
+      </div>
+
+      <h2>The week-to-week job</h2>
+      <p>From posting language and candidate/practitioner reports, a typical RSA engagement blends:</p>
+      <ul>
+        <li><strong>Architecture guidance</strong> — designing the target lakehouse, reviewing the customer's existing estate, making build-vs-buy and pattern decisions (verified posting language: "end-to-end design, build, deploy of data and AI applications").</li>
+        <li><strong>Hands-on implementation</strong> — writing PySpark/SQL, building pipelines, tuning workloads. This is not an oversight role; postings require coding in Python or Scala plus strong SQL and Spark internals depth.</li>
+        <li><strong>Escalation handling</strong> — postings list "escalated support" during engagements: when the customer's production job falls over mid-project, you are the person in the room.</li>
+        <li><strong>Scoping and delivery management</strong> — working with Engagement Managers on scope and timeline; "technical project delivery" is an explicit requirement.</li>
+        <li><strong>Enablement and trusted-advisor work</strong> — commonly reported by practitioners rather than spelled out in postings: upskilling the customer's engineers so the work survives your departure, and earning enough trust to influence roadmap decisions beyond the SOW.</li>
+        <li><strong>Utilization targets</strong> — because RSAs are billable, your time is tracked against a utilization goal, as in any consulting practice. Specific percentages are <em>commonly reported, not published</em> — ask the hiring manager directly what the target is and how bench time, presales assists, and internal IP work count toward it. Asking shows you understand the PS business model.</li>
+      </ul>
+
+      <h2>The success profile</h2>
+      <p>The 2026 postings ask for 6+ years (Senior ~10+) of data engineering/platforms in <strong>customer-facing post-sales or consulting roles</strong>; deep Apache Spark including runtime internals; expertise in one cloud and working knowledge of two; CI/CD and MLOps; whiteboarding and documentation; and client management including conflict resolution. Read between the lines and the profile is a three-legged stool:</p>
+      <ul>
+        <li><strong>Technical depth</strong> — Spark execution model, Delta Lake, Unity Catalog, cloud networking and security. Generic warehouse knowledge does not pass; Databricks-specific depth does. (Drill this in <a href="de-spark.html">Spark internals</a>, <a href="de-delta.html">Delta Lake</a>, and <a href="de-unity-catalog.html">Unity Catalog</a>.)</li>
+        <li><strong>Consulting presence</strong> — discovery before solutioning, calm under pushback, comfort being the senior technical voice in a room of strangers, and the ability to say "I don't know, here's how I'd find out" without losing the room.</li>
+        <li><strong>Writing and communication</strong> — architecture docs, runbooks, SOW-grade scoping language, and status communication that executives can consume. Postings list documentation explicitly; candidate reports say communication is weighted as heavily as code.</li>
+      </ul>
+      <p>Kill any one leg and the stool falls: a brilliant engineer who cannot run a discovery conversation fails the panel; a polished consultant who cannot write live PySpark fails the deep dive.</p>
+
+      <h2>The interview loop, stage by stage</h2>
+      <p>Candidate reports (Glassdoor, Blind, Taro, Dataford — accessed June 2026) converge on a <strong>5–6 round loop over roughly 4–8 weeks</strong> (average ~34 days; one RSA report ran ~2 months). Glassdoor pegs difficulty at 3.4/5 with only ~43% positive experiences — the loop is described as highly selective, with a near-SWE technical bar. Stages vary slightly by report; treat this as the common shape, and confirm specifics with your recruiter.</p>
+
+      <h3>1. Recruiter screen</h3>
+      <p>Project storytelling — but do not assume it stays soft. At least one report (Taro) describes a recruiter screen diving straight into Spark performance with no warm-up. <strong>Prep:</strong> have two quantified delivery stories cold (scope, your role, architecture, outcome), and be able to explain a Spark performance win in 90 seconds without notes.</p>
+
+      <h3>2. Hiring manager</h3>
+      <p>Background depth and customer-facing fit: why Databricks, why Professional Services specifically, how you handle difficult stakeholders. <strong>Prep:</strong> rehearse the "why RSA, not presales SA or DSA" answer above; bring one story of resolving a client conflict; ask about utilization, vertical alignment, and typical engagement length — it signals you know what PS is.</p>
+
+      <h3>3. Coding: take-home or CodeSignal (~2–3 hours)</h3>
+      <p>Advanced SQL plus PySpark — complex joins and filtering are the consistent theme; other reports cite hit-counter, game-logic, and IP/CIDR-style problems. <strong>Prep:</strong> live, timed coding is non-negotiable. Drill window functions and multi-step PySpark transforms until you write them flawlessly without an IDE crutch; candidate reports say needing hints counts against you across the Databricks family of loops.</p>
+
+      <h3>4. Technical deep dive</h3>
+      <p>Reported coverage: Spark internals (narrow vs wide transformations, Catalyst, memory management, data skew), Delta Lake and ACID, medallion architecture, cloud networking and security, streaming schema evolution, MLOps. Expect scenario framing — "the customer's nightly job suddenly takes 4x longer" — rather than trivia. You should be able to reason about a skewed join out loud and sketch the fix:</p>
+      <pre><code># Skewed fact-dim join: diagnose, then pick the cheapest fix that works.
+# 1) Confirm skew: a few tasks straggle in the Spark UI; key histogram:
+df.groupBy("customer_id").count().orderBy(F.desc("count")).show(10)
+
+# 2) Small dimension? Broadcast it -- no shuffle of the big side:
+fact.join(F.broadcast(dim), "customer_id")
+
+# 3) Otherwise let AQE handle it (on by default in modern DBR):
+spark.conf.set("spark.sql.adaptive.skewJoin.enabled", "true")
+
+# 4) Last resort for pathological keys: salt the hot keys,
+#    explode the dimension across the salt range, join on (key, salt).</code></pre>
+      <p><strong>Prep:</strong> study Databricks-specific tech — Delta internals, Photon, Unity Catalog — not generic warehouse theory, and narrate trade-offs (cost, latency, operational burden), not just mechanisms.</p>
+
+      <h3>5. Project-delivery / consulting discussion</h3>
+      <p>Scoping, timeline management, what you do when scope slips or the customer's team underdelivers. <strong>Prep:</strong> structure answers as situation, options considered, decision, outcome — and always name the trade-off you accepted.</p>
+
+      <h3>6. Panel presentation / customer simulation</h3>
+      <p>The decisive round — covered in full below. Some loops add an executive round and a hiring-manager wrap-up after it.</p>
+
+      <div class="callout interview">
+        <p><strong>"A customer's Delta merge job that fed month-end close started missing its SLA. Walk me through how you'd handle it as the embedded architect."</strong></p>
+        <p>Outline: (1) Triage like an operator — Spark UI for stragglers and spill, job run history for when the regression started, check for data-volume change vs code change. (2) Likely suspects in order of cheapness: small-file proliferation (compaction/OPTIMIZE), partition skew on the merge key, missing file-pruning (Z-ORDER or liquid clustering on the merge predicate), undersized or mis-typed cluster. (3) Stabilize first (one-time compaction, temporary cluster bump), then fix root cause, then prevent: add job-duration alerting and document the fix in the runbook. (4) Close the consulting loop: communicate impact and remediation to stakeholders in business terms — "close-cycle risk removed" — not executor counts.</p>
+      </div>
+
+      <h2>Inside the panel presentation</h2>
+      <p>Consistently cited as the hardest round. You get a business scenario in advance, build a recommendation, and present to a panel <strong>roleplaying customer stakeholders</strong> who push back deliberately on cost and complexity. Reports say it evaluates four things:</p>
+      <ul>
+        <li><strong>Discovery</strong> — do you ask qualifying questions before solutioning, or dump an architecture on minute one? Open by confirming business goals, current pain, constraints, and success criteria.</li>
+        <li><strong>Structure</strong> — a clear arc: problem, options, recommendation, phased plan, risks. Rehearse the slide and screen-share mechanics; fumbling logistics burns credibility minutes.</li>
+        <li><strong>Trade-off reasoning</strong> — including competitive positioning: why Databricks over Snowflake, Redshift, or DIY Spark <em>for this workload</em>, framed in business value and cost, with honest acknowledgment of where alternatives are fine.</li>
+        <li><strong>Handling pushback</strong> — "this looks expensive," "our team can't operate this," "why not just keep the warehouse?" The test is composure: acknowledge, quantify, offer a phased de-risked path. Never get defensive, never bluff.</li>
+      </ul>
+      <div class="callout warn">
+        <p><strong>Pitfall: treating the panel as a tech demo.</strong> Strong engineers fail this round by presenting the cleverest architecture instead of running a customer conversation. The panel is scoring whether they would put you in front of <em>their</em> strategic customer on Monday. If you have not asked a single question in the first five minutes, you are already losing — and if you answer a cost objection with more architecture instead of a number and a phasing option, you confirm the doubt.</p>
+      </div>
+      <div class="callout tip">
+        <p>Pre-write your discovery openers: "What does success look like in 12 months?", "What is the team's current skill mix?", "What broke last time you tried this?", "What is the cost baseline I should beat?" Then rehearse the presentation aloud, with a friend interrupting you on cost and complexity at minute three. Databricks publishes free ebooks on lakehouse architecture and migration — reading them gives you the house vocabulary the panel expects.</p>
+      </div>
+
+      <h2>Mapping your background to the role</h2>
+      <p>The RSA posting reads like a checklist of what you already do at ADM — minus the consulting business card. The mapping you should make explicit in every round:</p>
+      <ul>
+        <li><strong>Embedded delivery ownership</strong> — you lead Finance R2R analytics delivery end to end: architecture through hypercare. That is the RSA delivery lifecycle, with ADM as the "customer."</li>
+        <li><strong>Stakeholder discovery and fit-gap</strong> — you run discovery with finance stakeholders and produce fit-gap and architecture recommendations (batch vs near-real-time, CDC/SCD design, Power BI vs Dremio/Denodo semantic layers). That is consulting work in everything but title.</li>
+        <li><strong>Runbooks, hypercare, enablement</strong> — CI/CD, monitoring, runbooks, and hypercare through Azure DevOps; mentoring junior engineers through design and code reviews. Enablement-so-it-survives-your-departure is the trusted-advisor muscle.</li>
+        <li><strong>Production GenAI</strong> — three shipped agents on Databricks over HR data: a Genie Space headcount/salaries agent with the SQL shown for trust, a policy RAG assistant on Vector Search with cited answers, and a multi-agent router, all delivered as a Databricks App with Unity Catalog row- and column-level security. That maps directly onto the Senior RSA ML &amp; GenAI requirements (RAG, multi-agent, Text2SQL, production deployment).</li>
+        <li><strong>Migrations</strong> — Maersk SSAS-to-Azure Analysis Services, Port Authority VBA/Access-to-Synapse, Microsoft on-prem SSIS-to-Azure: three legacy-to-cloud migrations across three employers, which is the bread and butter of PS engagements (see <a href="rsa-migrations.html">Migration Playbooks</a>).</li>
+      </ul>
+      <div class="callout story">
+        <p>When asked for an embedded-delivery story, use ADM R2R end to end: you architected Bronze/Silver/Gold medallion pipelines on Azure Databricks and ADF integrating JDE, SAP, HFM, IBM DB2, and IBM APGO Web Wire into Delta Lake under Unity Catalog governance, delivering P&amp;L, Budget vs Actual, Expense Forecasting, EHS, and Capital Allocation KPIs to Executive Committee and CFO-level consumers — then ran the FinOps loop yourself (cluster right-sizing, autoscaling policies, partitioning/compaction/Z-ORDER). One narrative covers architecture guidance, hands-on build, executive stakeholders, governance, and cost discipline: five RSA competencies in a single engagement.</p>
+      </div>
+      <div class="callout story">
+        <p>For the ML &amp; GenAI angle, the strongest card is the design choice, not the tech list: in the headcount and salaries agent you surfaced the generated SQL alongside every Genie answer specifically so HR users could trust it, and you enforced Unity Catalog row- and column-level permissions because the data was compensation data. That is exactly the "production GenAI with governance" judgment Senior RSA ML &amp; GenAI postings probe — most candidates have demos; you have a shipped Databricks App with real users and real access controls.</p>
+      </div>
+      <div class="callout interview">
+        <p><strong>"Tell me about a time a stakeholder pushed back on your technical recommendation."</strong></p>
+        <p>Outline using your semantic-layer fit-gap work at ADM, where you weigh Power BI-native modeling against a Dremio/Denodo virtualization layer: (1) Context — stakeholders pulling toward different tools. (2) Discovery — surface the actual decision criteria: query patterns, refresh latency needs, licensing cost, team skills. (3) Recommendation — present options with explicit trade-offs rather than a single answer, and let the criteria pick the winner. (4) Outcome — a decision stakeholders accept because they can see their concern weighed in the matrix. Close with the lesson: pushback usually means a constraint you have not surfaced yet, so respond with a question, not a defense — which is precisely the behavior the RSA panel round is scoring.</p>
+      </div>
+
+      <h2>The honest gap analysis</h2>
+      <p>Interviewers respect a candidate who names their own gaps before being asked. Yours, and how to handle each:</p>
+      <table>
+        <thead>
+          <tr><th>Gap</th><th>Reality</th><th>How to address it in the room</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>No consulting-firm title</strong></td>
+            <td>Postings prefer customer-facing post-sales or consulting backgrounds; your roles are in-house and contract delivery.</td>
+            <td>Reframe substance over title: Port Authority was a six-month contract engagement — scoped delivery for an external client; at ADM you run discovery, fit-gap, recommendations, and hypercare for demanding internal customers up to CFO and Executive Committee level. Say plainly: "I've done the consulting motions without the consulting letterhead — what I haven't done is bill by the hour, and I want to."</td>
+          </tr>
+          <tr>
+            <td><strong>Azure-deep, no AWS/GCP production depth</strong></td>
+            <td>Postings ask for expertise in one cloud and working knowledge of two; your production work is Azure end to end.</td>
+            <td>Lead with the strength — Azure expert depth exceeds the bar for cloud number one. For the second cloud, show a deliberate plan: lab work mapping ADLS/ADF/Entra concepts to S3/Glue/IAM equivalents, and note that Databricks itself abstracts much of the difference (Unity Catalog, Delta, Spark are cloud-portable). Never bluff AWS production war stories; one follow-up question exposes it.</td>
+          </tr>
+          <tr>
+            <td><strong>Databricks certs in progress</strong></td>
+            <td>You hold Lakehouse Fundamentals plus deep Microsoft credentials (DP-700, DP-600, DP-203); the Databricks Data Engineer Associate is planned for 2026, not yet earned.</td>
+            <td>State it precisely: "Associate cert scheduled this year; the production track record is on Databricks today." Daily Azure Databricks delivery at ADM plus shipped production GenAI agents outweighs a cert — but only if you volunteer the cert status before they discover it.</td>
+          </tr>
+          <tr>
+            <td><strong>Orchestration-stack honesty</strong></td>
+            <td>Your production orchestration is Databricks Workflows/Jobs + ADF + Redwood RunMyJobs. Auto Loader, DLT/Lakeflow Declarative Pipelines, and Asset Bundles are study/lab knowledge for you, not production experience.</td>
+            <td>Keep the line bright in interviews: "In production I've run Workflows plus ADF; I've built with Lakeflow Declarative Pipelines in labs and here's how I'd evaluate moving a customer onto it." RSAs are trusted advisors — getting caught inflating experience ends the loop faster than any knowledge gap. See <a href="de-lakeflow.html">the Lakeflow module</a> to make the lab knowledge genuinely deep.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>One closing calibration: the loop is long, the bar is high, and reported pass sentiment is under 50% — so treat every round, including the recruiter screen, as technical until proven otherwise, and treat the panel as the round you over-prepare. The role itself is the closest thing Databricks has to what you already do all day; the interview is about proving you can do it in someone else's building, on the clock, with the meter running.</p>
+    </article>
+
+    <div class="pagenav"><a href="rsa-track.html"><span class="label">Previous</span>Resident Solutions Architect Track</a><a class="next" href="rsa-migrations.html"><span class="label">Next</span>Migration Playbooks</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

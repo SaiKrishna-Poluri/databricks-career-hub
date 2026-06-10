@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lakeflow: Jobs &amp; Declarative Pipelines · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="de-track.html">Data Engineer Track</a> / Lakeflow: Jobs &amp; Declarative Pipelines</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge de">DE Track · Module 04</span>
+        <h1>Lakeflow: Jobs &amp; Declarative Pipelines</h1>
+        <p class="lede">Orchestration the Databricks way - and how to talk about it in 2026 vocabulary.</p>
+      </header>
+
+      <h2>The Lakeflow umbrella - and the renames you must say out loud</h2>
+      <p>At Data + AI Summit in June 2025, Databricks GA'd <strong>Lakeflow</strong> as the single brand for data engineering on the Data Intelligence Platform. Two of its three pillars are renames of products you already know, and interviewers consistently respect candidates who can use both names fluently - it signals you have real history with the platform <em>and</em> you keep current.</p>
+      <table>
+        <thead>
+          <tr><th>Lakeflow pillar</th><th>Former name</th><th>What it does</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Lakeflow Connect</strong></td><td>(new product)</td><td>Managed ingestion connectors - GA for Salesforce, Workday, and SQL Server, plus ServiceNow, Google Analytics, SharePoint, PostgreSQL, and SFTP. Includes Zerobus Ingest for direct high-throughput event writes (GA on AWS/Azure).</td></tr>
+          <tr><td><strong>Lakeflow Spark Declarative Pipelines</strong> (SDP)</td><td>Delta Live Tables (DLT)</td><td>Declarative pipeline framework: you define tables and quality rules; the platform handles dependency ordering, incremental processing, retries, and compute. Briefly called "Lakeflow Declarative Pipelines" in 2025; "Spark" was added to align with Apache Spark Declarative Pipelines, standardized in Spark 4.1.</td></tr>
+          <tr><td><strong>Lakeflow Jobs</strong></td><td>Databricks Workflows</td><td>The native orchestrator: DAGs of tasks, schedules, triggers, conditional logic, repair runs. The workspace UI sidebar now reads "Jobs &amp; Pipelines".</td></tr>
+        </tbody>
+      </table>
+      <p>Two more naming notes worth a sentence in an interview: <strong>Lakeflow Designer</strong> is the no-code pipeline builder layered on top of declarative pipelines, and <strong>Declarative Automation Bundles</strong> is the March 2026 rename of Databricks Asset Bundles (the CLI command is still <code>databricks bundle</code> and the YAML is unchanged - a non-breaking rename). Also: classic billing SKUs still say "DLT" on the invoice even though the docs say SDP. Knowing that detail is exactly the kind of thing that separates "read a blog post" from "operates the platform".</p>
+
+      <h2>Lakeflow Jobs in depth</h2>
+      <p>Lakeflow Jobs is the control-flow layer: it doesn't know what a "good row" is, it knows what runs, in what order, on what compute, and what happens when something fails. If you've used ADF, Airflow, or Redwood, the mental model maps directly - a job is a DAG of tasks.</p>
+
+      <h3>Tasks and dependencies</h3>
+      <p>A job is one or more tasks with <code>depends_on</code> edges. Task types you should be able to list cold:</p>
+      <ul>
+        <li><strong>Notebook</strong> - the workhorse; parameters arrive via widgets.</li>
+        <li><strong>Python script / Python wheel / JAR</strong> - for packaged, tested code rather than notebooks.</li>
+        <li><strong>SQL</strong> - run a saved query, a SQL file from a repo, refresh an AI/BI dashboard, or evaluate an alert on a SQL warehouse.</li>
+        <li><strong>Pipeline</strong> - trigger a Lakeflow Spark Declarative Pipeline update as one node in a bigger DAG (this is how the two halves of this page meet).</li>
+        <li><strong>dbt</strong> - run dbt projects against a SQL warehouse.</li>
+        <li><strong>Run Job</strong> - call another job as a child, enabling modular, composable orchestration.</li>
+        <li><strong>If/else condition</strong> and <strong>For each</strong> - native branching and fan-out/looping over a parameterized task.</li>
+      </ul>
+
+      <h3>Job and task parameters</h3>
+      <p>Parameters exist at two levels. <strong>Job parameters</strong> are defined once and automatically pushed to every task; <strong>task parameters</strong> override or extend them per task. Dynamic value references like <code>{{job.run_id}}</code>, <code>{{job.start_time.iso_date}}</code>, or <code>{{job.parameters.region}}</code> are resolved at run time. For passing computed values <em>between</em> tasks, use task values: <code>dbutils.jobs.taskValues.set(key="row_count", value=n)</code> in an upstream task, then reference <code>{{tasks.ingest.values.row_count}}</code> downstream - for example, to feed an If/else task that skips the publish step when zero rows landed.</p>
+
+      <h3>Conditional execution and repair runs</h3>
+      <p>Beyond If/else tasks, every dependency edge carries a <strong>Run if</strong> condition: <em>all succeeded</em> (default), <em>at least one succeeded</em>, <em>none failed</em>, <em>all done</em>, <em>at least one failed</em>, <em>all failed</em>. That last pair is how you build native failure-notification or cleanup tasks without an external watcher. When a run does fail, a <strong>repair run</strong> re-executes only the failed and skipped tasks, reusing the same run ID, parameters, and successful task results - no re-running six hours of upstream work because the last task hit a transient API timeout.</p>
+
+      <h3>Schedules and triggers</h3>
+      <ul>
+        <li><strong>Cron schedules</strong> - classic time-based, with a timezone and pause/resume.</li>
+        <li><strong>File arrival triggers</strong> - the job fires when new files land in a Unity Catalog volume or external location. This kills a whole class of "poll every 5 minutes" jobs.</li>
+        <li><strong>Continuous mode</strong> - the job restarts immediately on completion, for near-real-time loops without managing an always-on cluster yourself.</li>
+        <li><strong>Manual / API</strong> - Run Now from the UI, REST API, or an external scheduler (more on that below). Queueing and a max-concurrent-runs setting govern what happens when triggers overlap.</li>
+      </ul>
+
+      <h3>Compute: job clusters vs all-purpose vs serverless</h3>
+      <p>Three options, one clear hierarchy as of mid-2026:</p>
+      <ul>
+        <li><strong>Job clusters</strong> - created for the run, terminated after, billed at the cheaper jobs-compute SKU, isolated by design. Multiple tasks within one run can share a job cluster to avoid repeated spin-up.</li>
+        <li><strong>All-purpose clusters</strong> - interactive compute for humans. Attaching production jobs to them is a cost and reliability anti-pattern (see the warning below).</li>
+        <li><strong>Serverless jobs</strong> - GA and the strategic default: no cluster config at all, fast startup, and a UI default of "Performance optimized" mode (you can pick standard mode when cost matters more than latency).</li>
+      </ul>
+
+      <div class="callout warn">
+        <p><strong>Pitfall: production jobs on all-purpose clusters.</strong> It is the single most common cost finding in workspace reviews. All-purpose compute carries a higher DBU rate than jobs compute, the cluster often idles between runs, and shared interactive state (someone's stray library install, a detached-but-running cluster) leaks into production behavior. The fix is mechanical - move scheduled work to job clusters or serverless - but say it with the cost framing: same workload, materially lower DBU rate, plus deterministic, isolated environments per run.</p>
+      </div>
+
+      <div class="callout story">
+        <p>At ADM, this is your FinOps lane: you do cluster right-sizing and autoscaling policies across the Finance R2R estate alongside Delta tuning. When asked about compute strategy for orchestration, anchor on that - you've made the job-clusters-vs-all-purpose call on real workloads, set autoscaling bounds deliberately, and treated compute choice as a cost decision with monitoring and runbooks behind it (managed through Azure DevOps). That turns an abstract pricing fact into an operating practice you own.</p>
+      </div>
+
+      <h2>Lakeflow Spark Declarative Pipelines in depth</h2>
+      <p>Where Jobs is imperative control flow ("run this, then that"), declarative pipelines invert it: you declare the <em>datasets</em> and their quality contracts, and the framework derives the execution graph, manages checkpoints and incremental state, retries, and provisions its own compute. The former name - Delta Live Tables - still appears everywhere from old blog posts to billing SKUs, so use both names.</p>
+
+      <h3>Streaming tables vs materialized views</h3>
+      <table>
+        <thead>
+          <tr><th></th><th>Streaming table</th><th>Materialized view</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Processing model</strong></td><td>Incremental, exactly-once over an append-style source; each update processes only new records</td><td>Recomputed to stay consistent with its definition; the engine incrementally refreshes when it can, fully recomputes when it must</td></tr>
+          <tr><td><strong>Typical layer</strong></td><td>Bronze ingestion (Auto Loader / <code>cloudFiles</code>), Silver append streams</td><td>Silver joins/dedup with changing inputs, Gold aggregates</td></tr>
+          <tr><td><strong>Source assumptions</strong></td><td>Append-mostly; updates/deletes upstream need <code>skipChangeCommits</code> or a CDC flow</td><td>None - handles arbitrary changes in inputs</td></tr>
+          <tr><td><strong>Python decorator</strong></td><td><code>@dp.table</code></td><td><code>@dp.materialized_view</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Expectations: data quality as declared policy</h3>
+      <p>An expectation is a named boolean constraint with one of three violation policies - and the three verbs are an interview staple:</p>
+      <ul>
+        <li><strong>Warn</strong> (<code>expect</code>): keep the row, count the violation in pipeline metrics.</li>
+        <li><strong>Drop</strong> (<code>expect_or_drop</code> / <code>ON VIOLATION DROP ROW</code>): discard the row, count it.</li>
+        <li><strong>Fail</strong> (<code>expect_or_fail</code> / <code>ON VIOLATION FAIL UPDATE</code>): stop the update; the offending transaction does not commit.</li>
+      </ul>
+      <p>Here is a small pipeline in the current Python API. Note the import: the historical <code>import dlt</code> still works, but new code uses <code>from pyspark import pipelines as dp</code> - the module rename that came with the Apache Spark Declarative Pipelines alignment. No migration is required for existing DLT code.</p>
+      <pre><code># Lakeflow Spark Declarative Pipelines (formerly: import dlt)
+from pyspark import pipelines as dp
+from pyspark.sql import functions as F
+
+@dp.table(comment="Raw journal entries landed as JSON.")
+def journal_raw():
+    return (
+        spark.readStream.format("cloudFiles")
+        .option("cloudFiles.format", "json")
+        .load("/Volumes/finance/landing/journal/")
+    )
+
+@dp.table(comment="Validated journal entries.")
+@dp.expect("amount_present", "amount IS NOT NULL")                 # warn: keep + count
+@dp.expect_or_drop("valid_entity", "company_code IS NOT NULL")     # drop the row
+@dp.expect_or_fail("no_future_posting", "posting_date &lt;= current_date()")  # halt update
+def journal_clean():
+    return (
+        spark.readStream.table("journal_raw")
+        .withColumn("amount", F.col("amount").cast("decimal(18,2)"))
+    )
+</code></pre>
+
+      <div class="callout tip">
+        <p>Expectation metrics (passed/failed counts per constraint) land in the pipeline event log, which you can query like any table. A strong answer pairs the three policies with a monitoring story: warn-level violations trending up is your early-warning signal <em>before</em> you ever need a drop or fail.</p>
+      </div>
+
+      <div class="callout warn">
+        <p><strong>Pitfall: silent drops.</strong> <code>expect_or_drop</code> on a join key looks like hygiene but can quietly shrink revenue totals if an upstream feed degrades - the pipeline stays green while rows vanish. Reserve <em>drop</em> for rows that are genuinely unusable, alert on the drop-rate metric, and use <em>fail</em> for invariants where a partial answer is worse than no answer (financial postings, regulatory feeds).</p>
+      </div>
+
+      <h3>AUTO CDC (formerly APPLY CHANGES INTO): CDC and SCD without hand-rolled MERGE</h3>
+      <p>The declarative CDC API ingests a change feed and maintains a target as <strong>SCD Type 1</strong> (overwrite, no history) or <strong>SCD Type 2</strong> (history rows with <code>__START_AT</code>/<code>__END_AT</code> validity columns). Its quiet superpower is <code>SEQUENCE BY</code>: out-of-order change events are reconciled by the sequencing column, which a naive <code>MERGE</code> gets wrong. The current name is <strong>AUTO CDC</strong> (<code>AUTO CDC INTO</code> in SQL, <code>dp.create_auto_cdc_flow()</code> in Python); the legacy spelling <code>APPLY CHANGES INTO</code> / <code>dlt.apply_changes()</code> still appears in most material you'll study from - know both.</p>
+      <pre><code>-- Target streaming table, then a CDC flow into it (SQL)
+CREATE OR REFRESH STREAMING TABLE dim_supplier;
+
+CREATE FLOW supplier_scd2 AS AUTO CDC INTO dim_supplier
+FROM STREAM(supplier_changes_clean)
+KEYS (supplier_id)
+APPLY AS DELETE WHEN _op = 'D'
+SEQUENCE BY change_ts
+COLUMNS * EXCEPT (_op, change_ts)
+STORED AS SCD TYPE 2;
+
+-- Legacy equivalent began: APPLY CHANGES INTO dim_supplier FROM ...
+</code></pre>
+
+      <div class="callout interview">
+        <p><strong>"How would you implement SCD Type 2 on Databricks today?"</strong> Outline: (1) name the modern answer first - a declarative pipeline with AUTO CDC / APPLY CHANGES INTO, <code>SEQUENCE BY</code> for out-of-order events, <code>STORED AS SCD TYPE 2</code> giving validity columns for free; (2) contrast with the hand-rolled approach - <code>MERGE</code> with close-and-insert logic - and name its failure modes: late events, same-key collisions in one batch, reprocessing; (3) ground it in your experience: you've designed CDC/SCD patterns as part of fit-gap and architecture recommendations at ADM and built SCD 0/1/2 dimensional models as far back as the Microsoft payments project - so you can compare the hand-built cost against the declarative version credibly.</p>
+      </div>
+
+      <h3>Development vs production mode, and pipeline-managed compute</h3>
+      <p>Pipelines own their compute - you don't attach them to a cluster; you configure (or let serverless handle) compute in the pipeline settings. The dev/prod toggle changes operational behavior, not logic: in <strong>development mode</strong> the cluster is reused across runs (fast iteration, no spin-up tax) and retries are limited so errors surface immediately; in <strong>production mode</strong> compute is fresh per update, terminates when done, and transient failures are retried automatically. Serverless pipelines are GA and remove the sizing question entirely - with the same "Performance optimized" default as serverless jobs.</p>
+
+      <div class="callout tip">
+        <p><strong>Honesty calibration for interviews:</strong> your production orchestration record is Databricks Jobs/Workflows + ADF + Redwood RunMyJobs. Declarative pipelines (DLT/SDP) are study-and-lab knowledge for you - say exactly that. "My production pattern at ADM is Jobs orchestrating notebook tasks; I've built declarative pipelines in lab settings and here's when I'd choose them" is a stronger answer than a vague claim, because the decision framework is what's actually being tested.</p>
+      </div>
+
+      <h2>Choosing: declarative pipelines vs Jobs + notebooks vs external orchestrator</h2>
+      <table>
+        <thead>
+          <tr><th>Dimension</th><th>Lakeflow Spark Declarative Pipelines</th><th>Lakeflow Jobs + notebooks/code</th><th>External orchestrator (ADF, Airflow, Redwood)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>You describe</strong></td><td>Datasets + quality rules; engine derives the DAG</td><td>The DAG itself: tasks, order, conditions</td><td>Cross-platform DAG; Databricks is one node</td></tr>
+          <tr><td><strong>Incremental / CDC</strong></td><td>Built in: streaming tables, AUTO CDC, checkpoints managed for you</td><td>You own checkpoints, MERGE logic, idempotency</td><td>Delegated to whatever it triggers</td></tr>
+          <tr><td><strong>Data quality</strong></td><td>Expectations with warn/drop/fail + event-log metrics</td><td>Hand-rolled asserts or a framework you bring</td><td>None native</td></tr>
+          <tr><td><strong>Control / flexibility</strong></td><td>Constrained by design (that's the point)</td><td>Full: any library, any API call, any task type</td><td>Full at the cross-system level, blind inside Databricks</td></tr>
+          <tr><td><strong>Compute</strong></td><td>Pipeline-managed or serverless</td><td>Job clusters or serverless, your config</td><td>n/a - it invokes, doesn't compute</td></tr>
+          <tr><td><strong>Choose when</strong></td><td>Medallion ETL with quality gates, CDC/SCD targets, streaming-to-batch unification</td><td>Heterogeneous steps: ML training, REST calls, dbt, dashboard refresh, child jobs</td><td>Dependencies span SAP extracts, on-prem steps, BI refreshes, and Databricks together</td></tr>
+        </tbody>
+      </table>
+      <p>These compose rather than compete: the cleanest 2026 answer is an external scheduler (if the enterprise mandates one) triggering a Lakeflow Job, which contains a pipeline task running the declarative transformation plus surrounding tasks for everything declarative pipelines don't do. Defined once and deployed across environments with Declarative Automation Bundles, that's the full reference answer.</p>
+
+      <div class="callout interview">
+        <p><strong>"Why would I use Lakeflow Jobs when we already have ADF / Airflow / an enterprise scheduler?"</strong> Outline: (1) don't pick a fight - the answer is layering, not replacement; (2) Jobs gives Databricks-native capabilities external tools can't see: repair runs at task granularity, task values flowing between steps, file-arrival triggers on UC volumes, serverless compute selection, pipeline tasks; (3) external schedulers own what Jobs can't: cross-platform dependencies and enterprise SLAs/calendars; (4) the pattern: scheduler calls the Jobs REST API (<code>Run Now</code>) or, in ADF's case, native Databricks activities, then polls run state - one retry owner per layer so failures aren't retried twice. Close with: "That's exactly how my production estate at ADM is wired."</p>
+      </div>
+
+      <h2>Integrating with enterprise schedulers</h2>
+      <p>Real enterprises rarely give Databricks the only seat at the orchestration table. The integration mechanics to know: trigger a job via the <strong>Jobs REST API</strong> (<code>POST /api/2.2/jobs/run-now</code>) with job parameters in the payload; poll <code>runs/get</code> for terminal state, or use webhooks/notifications for push-based status; let exactly one layer own retries; and pass a correlation ID (the scheduler's run key) in as a job parameter so you can trace a failure across systems. ADF additionally has first-class Databricks activities, and tools like Redwood RunMyJobs wrap the same API behind SAP-aware calendars and dependency chains.</p>
+
+      <div class="callout story">
+        <p>This is your strongest card on this page. At ADM, the Finance R2R orchestration genuinely spans four tools: <strong>ADF</strong> for ingestion from JDE, SAP, HFM, IBM DB2, and IBM APGO Web Wire; <strong>Databricks Jobs/Workflows</strong> for the Bronze/Silver/Gold medallion transformations; <strong>Redwood RunMyJobs</strong> as the enterprise scheduler stitching cross-tool dependencies; and <strong>Power BI refresh chains</strong> as the last hop so CFO-level dashboards never show half-loaded P&amp;L or Budget-vs-Actual numbers. Tell it as a dependency-design story: where each tool's responsibility starts and stops, who owns retries at each layer, and how monitoring and runbooks (via Azure DevOps, through hypercare) make a four-tool chain operable. Very few candidates can describe a real cross-scheduler production topology - this one is yours.</p>
+      </div>
+
+      <h2>Rapid recall</h2>
+      <ul>
+        <li>Lakeflow = Connect (ingestion) + Spark Declarative Pipelines (ex-DLT) + Jobs (ex-Workflows); GA June 2025; UI says "Jobs &amp; Pipelines".</li>
+        <li>Jobs: task DAGs, two parameter levels + task values, Run-if edges, If/else and For-each tasks, repair runs, file-arrival/continuous triggers, serverless or job clusters - never all-purpose for production.</li>
+        <li>Pipelines: streaming tables (incremental, append sources) vs materialized views (consistent recompute); expectations warn/drop/fail; AUTO CDC for SCD1/2 with SEQUENCE BY; dev mode reuses compute, prod mode is fresh + auto-retry.</li>
+        <li>Code rename: <code>import dlt</code> → <code>from pyspark import pipelines as dp</code>; <code>APPLY CHANGES INTO</code> → <code>AUTO CDC INTO</code>; billing SKUs still say DLT.</li>
+        <li>Layering answer: enterprise scheduler → Lakeflow Job → pipeline task; one retry owner per layer; deploy with Declarative Automation Bundles (ex-Asset Bundles, renamed March 2026).</li>
+      </ul>
+    </article>
+
+    <div class="pagenav"><a href="de-streaming.html"><span class="label">Previous</span>Streaming &amp; Incremental Ingestion</a><a class="next" href="de-unity-catalog.html"><span class="label">Next</span>Unity Catalog &amp; Governance</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

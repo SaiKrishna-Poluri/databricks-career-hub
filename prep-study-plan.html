@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>8-Week Study Plan · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="prep-track.html">Interview Prep Track</a> / 8-Week Study Plan</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge prep">Prep · Module 04</span>
+        <h1>8-Week Study Plan</h1>
+        <p class="lede">Week-by-week from today to interview-ready - check items off; progress is saved in your browser.</p>
+      </header>
+
+      <div class="progress-wrap"><span class="progress-label"></span><div class="progress-bar"><div></div></div></div>
+
+      <p>This plan turns the whole hub into a schedule: 47 checkable items across 8 weeks, sequenced so the <strong>DE Associate exam lands in week 5</strong> and interview rehearsal peaks in week 7, right when applications submitted in week 5 start producing screens (Databricks loops average roughly 35&ndash;38 days end to end). If you start the week of June 9, the exam target is the week of July 6. Checkbox state lives in this browser's localStorage, so use one machine or accept a reset.</p>
+
+      <table>
+        <thead>
+          <tr><th>Week</th><th>Theme</th><th>Core modules</th><th>Milestone</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>DE foundations</td><td><a href="de-spark.html">Spark</a>, <a href="de-delta.html">Delta</a></td><td>Lab workspace live; exam booked</td></tr>
+          <tr><td>2</td><td>Ingestion &amp; pipelines</td><td><a href="de-streaming.html">Streaming</a>, <a href="de-lakeflow.html">Lakeflow</a></td><td>Auto Loader lab done; resume finalized</td></tr>
+          <tr><td>3</td><td>Governance &amp; modeling</td><td><a href="de-unity-catalog.html">Unity Catalog</a>, <a href="de-modeling.html">Modeling</a></td><td>UC + SCD2 labs; LinkedIn drafted</td></tr>
+          <tr><td>4</td><td>Performance, SQL, DevOps</td><td><a href="de-performance.html">Performance</a>, <a href="de-sql.html">SQL</a>, <a href="de-devops.html">DevOps</a></td><td>Bundle deployed; practice exam 1</td></tr>
+          <tr><td>5</td><td>Certification week</td><td><a href="de-certifications.html">Certifications</a>, <a href="rsa-role.html">RSA Role</a></td><td>Exam sat; applications opened</td></tr>
+          <tr><td>6</td><td>RSA depth</td><td><a href="rsa-migrations.html">Migrations</a>, <a href="rsa-architectures.html">Architectures</a>, <a href="rsa-genai.html">GenAI</a></td><td>Panel deck built; site published</td></tr>
+          <tr><td>7</td><td>Rehearsal</td><td><a href="rsa-consulting.html">Consulting</a>, <a href="prep-track.html">Prep track</a></td><td>4 mocks done; stories rehearsed</td></tr>
+          <tr><td>8</td><td>Buffer &amp; launch</td><td>Weak areas only</td><td>Applications in; Professional plan set</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Week 1 — DE foundations</h2>
+      <p>Theme: rebuild Spark and Delta mental models from first principles, stand up a lab, and put a real deadline on the calendar.</p>
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" id="w1-1"><span class="check-label">Work through <a href="de-spark.html">Spark Architecture</a>: lazy evaluation, jobs/stages/tasks, shuffles, AQE. Write down three things that differ from the mental model you run on at ADM.</span></label>
+        <label class="check-item"><input type="checkbox" id="w1-2"><span class="check-label">Work through <a href="de-delta.html">Delta Lake Internals</a>: transaction log, time travel, OPTIMIZE and Z-ORDER vs Liquid Clustering, VACUUM semantics. You tune Delta in production - make sure you can explain <em>why</em> each knob works.</span></label>
+        <label class="check-item"><input type="checkbox" id="w1-3"><span class="check-label">Set up a Databricks Free Edition (or trial) workspace. Create one catalog and schema you will reuse for every lab in this plan.</span></label>
+        <label class="check-item"><input type="checkbox" id="w1-4"><span class="check-label">Register for the DE Associate exam at webassessor.com/databricks. Target the week of July 6 (end of week 5). USD 200, 45 questions, 90 minutes, online or test center.</span></label>
+        <label class="check-item"><input type="checkbox" id="w1-5"><span class="check-label">Download the official May 2026 exam guide PDF and map its 7 domains to this site's modules. Note the two heaviest: Ingestion &amp; Loading (21%) and Transformation &amp; Modeling (22%).</span></label>
+        <label class="check-item"><input type="checkbox" id="w1-6"><span class="check-label">Start the daily 45-minute cadence (below): 30 minutes module study, 15 minutes timed SQL or PySpark drill. Track the streak.</span></label>
+      </div>
+
+      <div class="callout tip">
+        <p>Book the exam <strong>before</strong> you feel ready. The date is the plan: everything in weeks 2&ndash;4 exists to converge on it, and a paid, calendared slot beats a vague intention every time. If week 4's practice exam goes badly, Webassessor lets you reschedule - but you almost certainly will not need to.</p>
+      </div>
+
+      <h2>Week 2 — Ingestion &amp; pipelines</h2>
+      <p>Theme: close your biggest tooling gap. The exam's heaviest domain is ingestion, and Auto Loader and declarative pipelines are exactly the tools you have not run in production.</p>
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" id="w2-1"><span class="check-label">Work through <a href="de-streaming.html">Structured Streaming</a>: micro-batches, checkpoints, watermarks, triggers, exactly-once semantics.</span></label>
+        <label class="check-item"><input type="checkbox" id="w2-2"><span class="check-label">Work through <a href="de-lakeflow.html">Lakeflow</a>: Lakeflow Connect, Spark Declarative Pipelines (formerly DLT), expectations (EXPECT / DROP ROW / FAIL UPDATE), streaming tables vs materialized views, Jobs triggers (scheduled, file-arrival, table-update).</span></label>
+        <label class="check-item"><input type="checkbox" id="w2-3"><span class="check-label">Lab: build a small Auto Loader (cloudFiles) ingestion into a Bronze table, then a declarative pipeline to Silver with at least one expectation. Break it on purpose: drop a malformed file in and watch what the expectation does.</span></label>
+        <label class="check-item"><input type="checkbox" id="w2-4"><span class="check-label">Finalize the resume per the finalization notes: add university and major, verify the $10M (Maersk) and $20K/month (Ecolab) figures before any external use, and add "Databricks Certified Data Engineer Associate - scheduled July 2026".</span></label>
+        <label class="check-item"><input type="checkbox" id="w2-5"><span class="check-label">Drill: 10 window-function SQL problems, timed. Use <a href="de-sql.html">the SQL module</a> as the question bank seed.</span></label>
+        <label class="check-item"><input type="checkbox" id="w2-6"><span class="check-label">Whiteboard your ADM R2R medallion flow from memory - sources (JDE, SAP, HFM, DB2) through Bronze/Silver/Gold to the CFO-level KPIs. This diagram is the backbone of every system-design answer you will give.</span></label>
+      </div>
+
+      <div class="callout interview">
+        <p><strong>"Have you run Auto Loader or Lakeflow Declarative Pipelines in production?"</strong></p>
+        <p>Do not bluff this - interviewers at Databricks and its partners can smell invented production stories. Strong outline: (1) be precise - "My production orchestration at ADM is Databricks Workflows plus ADF, coordinated through Redwood RunMyJobs; ingestion there is metadata-driven ADF and PySpark." (2) Pivot to lab depth - "I've built Auto Loader and declarative pipelines hands-on while preparing for the Associate cert, including expectations and file-arrival triggers, so I know the API and the failure modes." (3) Close with transferable production depth: medallion design, Unity Catalog governance, Delta tuning, and FinOps are things you <em>do</em> run at enterprise scale. Honesty plus adjacent depth reads far better than a vague yes.</p>
+      </div>
+
+      <h2>Week 3 — Governance &amp; modeling</h2>
+      <p>Theme: Governance &amp; Security is 15% of the exam and the core of every enterprise conversation; modeling is where your SCD and CDC experience becomes exam points.</p>
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" id="w3-1"><span class="check-label">Work through <a href="de-unity-catalog.html">Unity Catalog</a>: securable hierarchy, GRANT/REVOKE/DENY, managed vs external tables, row filters and column masks, ABAC, lineage.</span></label>
+        <label class="check-item"><input type="checkbox" id="w3-2"><span class="check-label">Work through <a href="de-modeling.html">Data Modeling</a>: SCD types, CDC patterns, star schemas on the lakehouse, when a streaming table vs a materialized view is the right Gold object.</span></label>
+        <label class="check-item"><input type="checkbox" id="w3-3"><span class="check-label">Lab: on an HR-style sample table, apply UC grants to a second principal, add a row filter and a column mask. You shipped exactly this pattern for the ADM HR agents - now reproduce it from scratch, unaided.</span></label>
+        <label class="check-item"><input type="checkbox" id="w3-4"><span class="check-label">Lab: SCD2 MERGE from a deduplicated CDC feed, then replay a late-arriving update and verify the history is still correct.</span></label>
+        <label class="check-item"><input type="checkbox" id="w3-5"><span class="check-label">Draft the LinkedIn headline and About update targeting Databricks roles: lead with Azure Databricks, Unity Catalog, GenAI agents in production, and the scheduled cert date.</span></label>
+        <label class="check-item"><input type="checkbox" id="w3-6"><span class="check-label">Drill: explain managed vs external tables out loud in 90 seconds. Record it, listen back, cut the filler.</span></label>
+      </div>
+
+      <div class="callout story">
+        <p><strong>Week 3's governance lab is a replay, not new material.</strong> The three ADM HR agents - the Genie Space headcount-and-salaries agent, the Employee Policy RAG assistant, and the multi-agent router - all run behind Unity Catalog row- and column-level permissions, so HR users only see the data slices they are entitled to. You shipped that pattern in production; the lab's job is to prove you can rebuild it from a blank workspace, with the GRANTs, row filter, and column mask coming from recall rather than an existing setup. "I run this in production <em>and</em> I can rebuild it cold" is a far stronger interview sentence than either half alone.</p>
+      </div>
+
+      <h2>Week 4 — Performance, SQL, DevOps</h2>
+      <p>Theme: the remaining exam domains plus your first full dress rehearsal - by Sunday you know exactly where you stand.</p>
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" id="w4-1"><span class="check-label">Work through <a href="de-performance.html">Performance &amp; Optimization</a>: skew, shuffle, spill in the Spark UI; broadcast joins; AQE; Liquid Clustering; predictive optimization.</span></label>
+        <label class="check-item"><input type="checkbox" id="w4-2"><span class="check-label">Work through <a href="de-sql.html">Advanced SQL</a> end to end: window functions, MERGE, higher-order functions, dedup idioms.</span></label>
+        <label class="check-item"><input type="checkbox" id="w4-3"><span class="check-label">Work through <a href="de-devops.html">DevOps &amp; CI/CD</a>: Databricks Git Folders (formerly Repos) and Automation Bundles (formerly Databricks Asset Bundles) - the May 2026 guide uses the new names, so learn both.</span></label>
+        <label class="check-item"><input type="checkbox" id="w4-4"><span class="check-label">Lab: scaffold a bundle with the CLI, define one job in it, and deploy and run it against your workspace. Your Azure DevOps CI/CD habits transfer; the bundle YAML layout is the new part.</span></label>
+        <label class="check-item"><input type="checkbox" id="w4-5"><span class="check-label">First full-length practice exam, strictly timed at 90 minutes. Score it by the 7 official domains, not just overall.</span></label>
+        <label class="check-item"><input type="checkbox" id="w4-6"><span class="check-label">Remediate the two weakest domains: re-read the matching module, then 20 targeted questions on each.</span></label>
+      </div>
+
+      <h2>Week 5 — Certification week</h2>
+      <p>Theme: pass the exam mid-week, then immediately convert the credential into applications while it is freshest.</p>
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" id="w5-1"><span class="check-label">Review <a href="de-certifications.html">the Certifications module</a>: logistics, the 7-domain blueprint, and the sample questions in the official guide. Confirm nothing changed since the May 4, 2026 version - check the current exam guide.</span></label>
+        <label class="check-item"><input type="checkbox" id="w5-2"><span class="check-label">Second practice exam. Databricks does not publish a passing score (third parties report roughly 70&ndash;80%), so target comfortably above 80% before sitting it.</span></label>
+        <label class="check-item"><input type="checkbox" id="w5-3"><span class="check-label"><strong>Sit the Databricks Certified Data Engineer Associate exam.</strong></span></label>
+        <label class="check-item"><input type="checkbox" id="w5-4"><span class="check-label">Same day as the pass: claim the badge at credentials.databricks.com, add it to LinkedIn, and change the resume line from "scheduled" to earned with the date.</span></label>
+        <label class="check-item"><input type="checkbox" id="w5-5"><span class="check-label">Begin the RSA track with <a href="rsa-role.html">the role module</a>: what Resident Solutions Architects actually do and what their loop looks like.</span></label>
+        <label class="check-item"><input type="checkbox" id="w5-6"><span class="check-label">Open applications: list current Databricks openings (field engineering and data roles) plus 2&ndash;3 partner or consulting alternatives, and send referral requests to your network - referrals first, cold applies last.</span></label>
+      </div>
+
+      <h2>Week 6 — RSA depth</h2>
+      <p>Theme: build the customer-facing story - migrations, reference architectures, and the GenAI work that is your strongest differentiator.</p>
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" id="w6-1"><span class="check-label">Work through <a href="rsa-migrations.html">Migration Patterns</a>: warehouse-to-lakehouse moves, phasing, and the anti-patterns customers fall into.</span></label>
+        <label class="check-item"><input type="checkbox" id="w6-2"><span class="check-label">Work through <a href="rsa-architectures.html">Reference Architectures</a> and practice drawing two of them from memory.</span></label>
+        <label class="check-item"><input type="checkbox" id="w6-3"><span class="check-label">Work through <a href="rsa-genai.html">GenAI on Databricks</a> and map every concept to your three production ADM agents: Genie Space, Vector Search RAG with citations, and multi-agent intent routing under UC permissions.</span></label>
+        <label class="check-item"><input type="checkbox" id="w6-4"><span class="check-label">Build the panel-presentation deck from <a href="rsa-case-studies.html">Case Studies</a> - pick Case 1. Ten slides max: customer context, discovery questions, target architecture, phased plan, business outcomes.</span></label>
+        <label class="check-item"><input type="checkbox" id="w6-5"><span class="check-label">Publish this site to GitHub Pages and link it from the resume and LinkedIn. It is now an artifact, not just a study aid.</span></label>
+        <label class="check-item"><input type="checkbox" id="w6-6"><span class="check-label">Drill: 30-minute timed system design - the classic Databricks prompt is a scalable ingestion-to-lakehouse pipeline covering latency, schema evolution, and access control. Use your week 2 ADM whiteboard as the skeleton.</span></label>
+      </div>
+
+      <div class="callout story">
+        <p><strong>You already own the migration stories week 6 needs - they just lack RSA framing.</strong> At Maersk you brought SAP S/4HANA and ACDOCA Universal Journal data into an Azure lakehouse and migrated SSAS multidimensional cubes to Azure Analysis Services Tabular; at the Port Authority you replaced legacy VBA and MS Access ridership workloads with parameterized Synapse pipelines. Neither was branded "warehouse-to-lakehouse," but both follow the phased shape <a href="rsa-migrations.html">the Migrations module</a> teaches: assess, run in parallel, cut over, decommission. This week's work is translating those projects into customer-facing language - discovery, phasing, risk - not learning migration from zero.</p>
+      </div>
+
+      <div class="callout interview">
+        <p><strong>"How do you stay current with the Databricks platform?"</strong></p>
+        <p>This site <em>is</em> the answer. Outline: (1) concrete artifact - "I maintain a public Databricks knowledge base I built while preparing for certification; here is the link." (2) Evidence of tracking real change - "When the Associate blueprint changed on May 4, 2026, I re-mapped my plan to the new 7 domains and learned the renames: DLT to Lakeflow Spark Declarative Pipelines, Asset Bundles to Automation Bundles, Repos to Git Folders." (3) Practice, not just reading - "Everything I could not use at work - Auto Loader, declarative pipelines, bundles - I built in a Free Edition lab." Interviewers hear "I read the blog" constantly; a published, dated, hands-on knowledge base is a different class of answer.</p>
+      </div>
+
+      <h2>Week 7 — Rehearsal</h2>
+      <p>Theme: stop ingesting, start performing - every output this week is spoken, timed, and witnessed.</p>
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" id="w7-1"><span class="check-label">Work through <a href="rsa-consulting.html">Consulting Skills</a>: discovery questions, objection handling, framing technology in business outcomes.</span></label>
+        <label class="check-item"><input type="checkbox" id="w7-2"><span class="check-label">Re-read the entire <a href="prep-track.html">Interview Prep track</a> as a refresher - loop structure, coding bar, behavioral format.</span></label>
+        <label class="check-item"><input type="checkbox" id="w7-3"><span class="check-label">Two mock coding sessions, strictly timed, narrating your reasoning out loud the whole way - Databricks weights communication heavily, and reports from candidates say the bar is near-flawless execution.</span></label>
+        <label class="check-item"><input type="checkbox" id="w7-4"><span class="check-label">One mock system design: the ingestion-to-lakehouse prompt, 45 minutes, on a whiteboard or excalidraw, recorded.</span></label>
+        <label class="check-item"><input type="checkbox" id="w7-5"><span class="check-label">One mock panel presentation of the Case 1 deck to a friend or a camera. Practice pausing for "customer" questions and pivoting - the simulation round rewards interaction, not slide-reading.</span></label>
+        <label class="check-item"><input type="checkbox" id="w7-6"><span class="check-label">Rehearse your STAR stories aloud and fill the incident-story template in <a href="prep-behavioral.html">the STAR Story Bank</a>. Every story ends in a number or a named outcome.</span></label>
+      </div>
+
+      <h2>Week 8 — Buffer &amp; launch</h2>
+      <p>Theme: absorb slippage, close gaps, and ship the applications - this week exists so the plan survives contact with real life.</p>
+      <div class="check-group">
+        <label class="check-item"><input type="checkbox" id="w8-1"><span class="check-label">Weak-area review: anything you cannot explain at 80% confidence gets one more pass through its module and one more drill set.</span></label>
+        <label class="check-item"><input type="checkbox" id="w8-2"><span class="check-label">One final mock of whichever week 7 round felt shakiest.</span></label>
+        <label class="check-item"><input type="checkbox" id="w8-3"><span class="check-label">Submit all remaining applications and send follow-ups on every referral and recruiter thread from week 5.</span></label>
+        <label class="check-item"><input type="checkbox" id="w8-4"><span class="check-label">Schedule the DE Professional study plan: the post-September-2025 exam has 10 domains with Developing Code (22%) and Cost &amp; Performance (13%) heaviest - pick a target month and book the calendar block now.</span></label>
+        <label class="check-item"><input type="checkbox" id="w8-5"><span class="check-label">Retro: write down what is still shaky, what each mock interviewer flagged, and the next 4-week plan. The loop does not end at "applied".</span></label>
+      </div>
+
+      <div class="callout warn">
+        <p><strong>The whole plan leans on week 2's resume finalization actually happening.</strong> Applications open in week 5; if the resume still lacks your university and major, still carries unverified dollar figures (the $10M Maersk number is flagged "verify before external use"), or lists the certification ambiguously, every referral and recruiter screen downstream inherits that weakness. Two specific traps: never let the cert read as earned before you pass - "scheduled July 2026" until then, exact date after - and never quote the $10M externally until you have re-verified how it was measured. If week 2 slips, fix the resume before anything else in week 3; it outranks the labs.</p>
+      </div>
+
+      <h2>Daily cadence</h2>
+      <p>Weekdays: <strong>45&ndash;60 minutes</strong>, split 30 minutes of module study and 15 minutes of timed drill (SQL, PySpark idioms, or flashcards from the modules). Weekends: one or two 90&ndash;120 minute blocks for labs and, from week 6 on, mocks. Consistency beats cramming - on a day that collapses, do only the 15-minute drill and keep the streak alive rather than skipping entirely.</p>
+      <p>A good drill is one pattern, recalled cold, under a timer. Example - the dedup-to-latest idiom that shows up in both the exam and live SQL screens:</p>
+      <pre><code>-- 15-minute drill: latest record per key, then SCD-friendly output
+SELECT *
+FROM (
+  SELECT *,
+         ROW_NUMBER() OVER (
+           PARTITION BY employee_id
+           ORDER BY updated_at DESC
+         ) AS rn
+  FROM bronze.hr_updates
+)
+WHERE rn = 1;</code></pre>
+      <p>Rotate the drill bank weekly: windows and dedup (weeks 1&ndash;2), MERGE and SCD2 (week 3), join strategies and skew reasoning (week 4), then mixed timed sets after that.</p>
+
+      <h2>Application strategy</h2>
+      <p>Run applications as a parallel track from week 5, not an afterthought in week 8:</p>
+      <ul>
+        <li><strong>Referrals beat cold applies.</strong> A referral gets a recruiter's eyes on your resume; a cold apply gets a keyword filter's. Spend week 5 asking - former Maersk, ADM, and Port Authority colleagues, plus anyone in your network at Databricks or its partners.</li>
+        <li><strong>Work recruiters deliberately.</strong> Respond same-day, ask for the loop structure up front, and note that Databricks recruiters give per-round feedback on rejection - if a loop fails, that feedback feeds the week 8 retro.</li>
+        <li><strong>Partner and consulting firms are a parallel path, not a fallback.</strong> Their interviews are scenario-based and platform-centric - Delta internals, medallion, UC, tuning - which is exactly this site's DE track, and the Associate cert materially helps pass their resume screens. Two or three of these in flight keeps pressure off any single Databricks loop.</li>
+        <li><strong>Track everything in one spreadsheet:</strong> company, role, channel (referral / recruiter / cold), contact, stage, next action, next-action date. Review it every Friday; any row without a next action gets one or gets closed.</li>
+      </ul>
+
+      <div class="callout tip">
+        <p>Mind the calendar math: Databricks loops run 4&ndash;7 weeks. Applying in week 5 means screens land around weeks 6&ndash;7 - exactly when this plan schedules rehearsal - and onsites land in weeks 8&ndash;10, after the buffer week. That alignment is deliberate; if you delay applications to week 8, your onsites drift a month past your sharpest preparation.</p>
+      </div>
+    </article>
+
+    <div class="pagenav"><a href="prep-behavioral.html"><span class="label">Previous</span>STAR Story Bank</a><a class="next" href="index.html"><span class="label">Next</span>Home</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

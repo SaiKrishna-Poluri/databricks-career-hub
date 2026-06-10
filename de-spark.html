@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apache Spark Internals &amp; Troubleshooting · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="de-track.html">Data Engineer Track</a> / Apache Spark Internals &amp; Troubleshooting</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge de">DE Track · Module 01</span>
+        <h1>Apache Spark Internals &amp; Troubleshooting</h1>
+        <p class="lede">How Spark actually executes your code - and how to debug it like someone who has been paged for it.</p>
+      </header>
+
+      <h2>Architecture: driver, executors, cluster manager</h2>
+      <p>Every Spark application has exactly one <strong>driver</strong> and a set of <strong>executors</strong>. The driver runs your program's <code>main()</code>: it builds the logical plan, talks to the cluster manager to acquire resources, splits work into tasks, and schedules those tasks onto executors. Executors are JVM processes on worker nodes that run tasks on partitions of data and hold cached blocks. The <strong>cluster manager</strong> (on Databricks, an internal manager - you never configure standalone/YARN/Kubernetes yourself) allocates the executor processes.</p>
+      <p>On Databricks classic compute, the mapping is concrete: the <strong>driver runs on the driver node</strong> of the cluster, one executor per worker node by default, and notebook cells execute on the driver until an action forces distributed work. This is why a <code>df.collect()</code> or a giant <code>toPandas()</code> kills clusters - it pulls all data back into the driver JVM's memory. With serverless compute (GA for notebooks, jobs, and pipelines) the same logical roles exist but Databricks manages the sizing.</p>
+      <div class="callout tip">When something is "slow," first ask: is the work happening on the driver or the executors? Pure-Python loops, <code>collect()</code>, large local pandas conversions, and most single-threaded library calls are driver-side. The Spark UI shows nothing useful for those - because Spark isn't doing the work.</div>
+
+      <h2>Lazy evaluation, the DAG, and jobs → stages → tasks</h2>
+      <p>Transformations (<code>select</code>, <code>filter</code>, <code>join</code>, <code>groupBy</code>) are lazy: they only extend a logical plan. Nothing executes until an <strong>action</strong> (<code>count</code>, <code>write</code>, <code>collect</code>, <code>show</code>) triggers a <strong>job</strong>. Spark then compiles the plan into a DAG and cuts it into <strong>stages</strong> at every point where data must move between executors - that is, at every <strong>wide transformation</strong> (joins, <code>groupBy</code> aggregations, <code>repartition</code>, window functions over non-colocated keys, <code>distinct</code>). Narrow transformations (filter, map, column projection) pipeline together inside a single stage because each output partition depends on one input partition.</p>
+      <p>Each stage runs as a set of <strong>tasks</strong>, one task per partition, and a task is the unit a single executor core processes. So the hierarchy is: one action → one job (sometimes more) → stages separated by shuffle boundaries → tasks equal to the partition count of that stage. Hold this model in your head and the Spark UI stops being noise: a slow job is a slow stage, a slow stage is either too many/too few tasks or a handful of pathological tasks.</p>
+
+      <h2>Catalyst: from your code to a physical plan</h2>
+      <p>Catalyst is the query compiler behind both DataFrames and Spark SQL - they hit the same optimizer, which is why "DataFrame vs SQL performance" is a non-question. Four phases:</p>
+      <ol>
+        <li><strong>Parse</strong> - SQL text or DataFrame calls become an unresolved logical plan (column names not yet bound).</li>
+        <li><strong>Analyze</strong> - names and types are resolved against the catalog (on Databricks, Unity Catalog).</li>
+        <li><strong>Optimize</strong> - rule-based rewrites: predicate pushdown, column pruning, constant folding, join reordering. This is why filtering "late" in your code usually doesn't matter - Catalyst pushes the filter down anyway.</li>
+        <li><strong>Physical planning</strong> - Catalyst generates candidate physical plans (e.g., broadcast hash join vs sort-merge join), costs them using statistics, and picks one.</li>
+      </ol>
+      <p><strong>Whole-stage codegen</strong> then collapses the operators of a stage into a single generated Java function, eliminating virtual calls and per-row interpretation. In <code>df.explain()</code> output, operators marked with <code>*</code> are codegen'd. On Databricks, <strong>Photon</strong> (the native vectorized C++ engine) takes over much of this work where supported - worth name-dropping in an interview, but know that the Catalyst phases are identical either way.</p>
+      <div class="callout tip">Get fluent with <code>df.explain(mode="formatted")</code>. Being able to read a plan - spotting <code>Exchange</code> (shuffle), <code>BroadcastExchange</code>, <code>SortMergeJoin</code>, and <code>PhotonShuffleExchange</code> - is the single highest-leverage Spark debugging skill, and interviewers test it.</div>
+
+      <h2>Adaptive Query Execution (AQE)</h2>
+      <p>Static plans guess; AQE corrects the guesses at runtime using real shuffle statistics from completed stages. Enabled by default on modern Databricks Runtime, it does three big things:</p>
+      <ul>
+        <li><strong>Coalesces shuffle partitions.</strong> Instead of you tuning <code>spark.sql.shuffle.partitions</code> per query, AQE merges small post-shuffle partitions into sensibly sized ones. The static setting becomes an upper bound, not a target.</li>
+        <li><strong>Switches join strategies.</strong> If a join side turns out smaller than the broadcast threshold after filters run, AQE converts a planned sort-merge join into a broadcast hash join mid-flight.</li>
+        <li><strong>Handles skewed joins.</strong> AQE detects shuffle partitions far larger than the median and splits them into subpartitions, replicating the matching side, so one giant key doesn't pin a single task for an hour.</li>
+      </ul>
+      <p>AQE does not fix everything: it can't help skewed <em>aggregations</em> as thoroughly as skewed joins, it can't broadcast something that's still too big, and it operates only at shuffle boundaries. Know its limits as well as its features.</p>
+
+      <h2>Shuffle: why it dominates cost</h2>
+      <p>A shuffle redistributes rows across executors by key. Mechanically: each map task partitions its output by hash of the key, sorts/serializes it, and writes shuffle files to <strong>local disk</strong>; reduce tasks then fetch their slice from every map task over the <strong>network</strong>, deserialize, and often sort again. Disk I/O, network I/O, serialization, and memory pressure - all in one operation. That's why a job's cost profile is usually "the shuffles, plus rounding error."</p>
+      <p>Practical consequences: minimize shuffle count (don't <code>repartition</code> casually, pre-aggregate before joins where valid), minimize shuffle <em>width</em> (prune columns early so less data crosses the wire), and prefer broadcast joins where one side is genuinely small.</p>
+
+      <h2>Partition sizing rules of thumb</h2>
+      <ul>
+        <li>Target roughly <strong>128-200&nbsp;MB per partition</strong> of in-flight data. Smaller means scheduler overhead and tiny files; much larger means spill and slow stragglers.</li>
+        <li><code>spark.sql.shuffle.partitions</code> defaults to 200 - almost never right for big workloads when AQE is off. With AQE on (the Databricks default), leave it generous and let coalescing shrink it; Databricks' auto-optimized shuffle can manage it for you entirely.</li>
+        <li>Task count should comfortably exceed total executor cores (2-3x is a common heuristic) so the scheduler can balance, but not by orders of magnitude.</li>
+        <li><code>repartition(n)</code> triggers a full shuffle and can increase or decrease partitions evenly; <code>coalesce(n)</code> only merges existing partitions without a shuffle - cheap, but can produce unevenly sized partitions and reduce parallelism for everything before the write.</li>
+      </ul>
+      <pre><code># repartition vs coalesce before a write
+# Full shuffle: even partitions, costs a stage
+df.repartition(64, "fiscal_period").write.format("delta").save(path)
+
+# No shuffle: just merges partitions - fine for shrinking
+# output file count, but upstream stages keep old parallelism
+df.coalesce(8).write.format("delta").save(path)</code></pre>
+      <div class="callout warn">Pitfall: <code>coalesce(1)</code> to "make one clean output file" silently collapses the <em>entire final stage</em> to one task - your 64-core cluster computes the whole last stage on a single core. If you need few files in Delta, write normally and let OPTIMIZE / predictive optimization compact afterwards instead.</div>
+
+      <div class="callout story">At ADM I own Delta tuning and cluster right-sizing for the Finance R2R lakehouse as part of our FinOps work - partitioning strategy, compaction, and Z-ORDER on the warm Gold tables (liquid clustering is what I'd reach for on new tables today). In my experience the wins are rarely exotic: sane shuffle partition counts on heavy Silver-to-Gold aggregations, replacing accidental wide operations with pre-aggregated joins, and autoscaling policies tuned so the cluster isn't paying for idle executors. I also mentor junior engineers on PySpark performance in design and code reviews - the recurring lesson I teach is exactly this module: count your shuffles before you touch any config.</div>
+
+      <h2>Join strategies</h2>
+      <p>Spark picks a physical join from statistics and hints. The three you must know cold:</p>
+      <table>
+        <thead>
+          <tr><th>Strategy</th><th>How it works</th><th>Shuffle?</th><th>When it wins</th><th>Watch out for</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Broadcast hash join</strong></td>
+            <td>Small side is collected to the driver, broadcast to every executor, built into a hash map; big side streams past with no movement.</td>
+            <td>None on the big side</td>
+            <td>One side fits in memory (default threshold <code>spark.sql.autoBroadcastJoinThreshold</code> = 10&nbsp;MB; safely hintable far higher). Classic dimension-to-fact joins.</td>
+            <td>Broadcasting something too big OOMs the driver/executors; stale stats can mislead the planner.</td>
+          </tr>
+          <tr>
+            <td><strong>Sort-merge join</strong></td>
+            <td>Both sides shuffle by join key, sort, then merge matching runs.</td>
+            <td>Both sides</td>
+            <td>Two large tables; equi-joins at scale. The robust default - degrades gracefully, spills sorted runs to disk if needed.</td>
+            <td>Two full shuffles plus sorts; very sensitive to key skew.</td>
+          </tr>
+          <tr>
+            <td><strong>Shuffle hash join</strong></td>
+            <td>Both sides shuffle by key; the smaller side per partition is hashed in memory, no sort.</td>
+            <td>Both sides</td>
+            <td>One side much smaller than the other but too big to broadcast; saves the sort cost.</td>
+            <td>Hash table must fit in executor memory per partition - OOM risk under skew; planner prefers sort-merge unless nudged.</td>
+          </tr>
+        </tbody>
+      </table>
+      <pre><code>from pyspark.sql.functions import broadcast
+
+# Fact-to-dimension: force broadcast of the small side
+gl_detail = spark.read.table("silver.gl_transactions")     # billions of rows
+coa = spark.read.table("silver.chart_of_accounts")         # a few MB
+
+result = gl_detail.join(broadcast(coa), "account_id", "left")
+# SQL equivalent: SELECT /*+ BROADCAST(coa) */ ...</code></pre>
+
+      <div class="callout interview">
+        <p><strong>"You join a 2 TB fact table to a 50 MB dimension and it takes 40 minutes. Walk me through your debugging."</strong></p>
+        <p>Strong answer outline: (1) Open the SQL/DataFrame tab in the Spark UI, find the join node - is it a SortMergeJoin? If yes, both sides shuffled, including 2 TB unnecessarily. (2) Why no broadcast? 50 MB exceeds the 10 MB default threshold, or stats were missing/stale. (3) Fix: <code>broadcast()</code> hint or raise <code>autoBroadcastJoinThreshold</code>; note AQE may convert it at runtime if post-filter size qualifies. (4) Verify in the UI: BroadcastExchange replaces Exchange on the fact side, shuffle write drops to near zero. (5) Mention guardrail: never broadcast unbounded sides; check actual size, not row count.</p>
+      </div>
+
+      <h2>Data skew: detection and fixes</h2>
+      <p>Skew is uneven key distribution: a few partitions carry most of the rows, so a few tasks run forever while the cluster idles. Real financial data is skew by construction - intercompany accounts, default cost centers, and null business keys concentrate enormous row counts on single join keys.</p>
+      <p><strong>Detect it</strong> in the Stages tab: open the task-level summary metrics and compare min / median / max for duration and shuffle read size. Healthy stages have max close to the 75th percentile; a max 50x the median is skew. A stage stuck at "199/200 tasks complete" for twenty minutes is the classic smell.</p>
+      <p><strong>Fix it, in order of preference:</strong></p>
+      <ol>
+        <li><strong>Let AQE handle it</strong> - skew-join optimization splits oversized partitions automatically. Confirm in the plan that it actually fired.</li>
+        <li><strong>Broadcast the other side</strong> - skew is irrelevant if there's no shuffle on the skewed side.</li>
+        <li><strong>Filter or separate hot keys</strong> - nulls and sentinel keys often shouldn't join at all; union a hot-key path with the normal path.</li>
+        <li><strong>Salting</strong> - manually spread a hot key across N synthetic subkeys, replicating the small side N times.</li>
+      </ol>
+      <pre><code>from pyspark.sql import functions as F
+
+SALT_N = 16
+# Big, skewed side: scatter each key across 16 salted keys
+big_salted = big.withColumn(
+    "salted_key",
+    F.concat_ws("_", "join_key", (F.rand() * SALT_N).cast("int"))
+)
+# Small side: replicate every row once per salt value
+salts = spark.range(SALT_N).withColumnRenamed("id", "salt")
+small_salted = small.crossJoin(salts).withColumn(
+    "salted_key", F.concat_ws("_", "join_key", "salt")
+)
+joined = big_salted.join(small_salted, "salted_key")</code></pre>
+
+      <div class="callout story">The loads that taught me skew were SAP and JDE financial feeds. At Maersk, ingesting SAP S/4HANA ACDOCA Universal Journal data through metadata-driven ADF + PySpark pipelines into Delta meant joining enormous journal-line volumes against company-code and account dimensions where a handful of entities dominated row counts - the "one straggler task" pattern showed up constantly in the Stages tab. At ADM I see the same shape integrating JDE, SAP, and HFM into the R2R medallion pipelines: month-end actuals concentrate on a few ledgers and periods, so I check task-skew metrics before I blame cluster size.</div>
+
+      <h2>Spill: what it is and how to spot it</h2>
+      <p><strong>Spill</strong> happens when an operator's working set (sort buffers, aggregation hash maps, join hash tables) exceeds the execution memory available to the task, so Spark serializes blocks to disk and reads them back later. The job still succeeds - that's the point of spill - but you pay serialization plus disk I/O both ways, often multiplying stage time several times over.</p>
+      <p>In the Spark UI, look at <strong>Spill (Memory)</strong> and <strong>Spill (Disk)</strong> in stage/task metrics. Memory spill is the in-memory size of spilled data; disk spill is its serialized size on disk (smaller, since serialized). Any non-zero spill on a hot stage is a tuning signal. Causes and fixes: partitions too large (raise partition count / let AQE coalesce less aggressively), skew (see above), too many cores per executor sharing too little memory (fewer, fatter tasks), or an oversized aggregation that should be staged. Throwing bigger instance types at spill works but is the expensive fix - check partition sizing first.</p>
+
+      <h2>Reading the Spark UI: a practical walkthrough</h2>
+      <p>A repeatable triage sequence for a slow Databricks job:</p>
+      <ol>
+        <li><strong>Jobs tab.</strong> Which job in the run is eating the wall-clock time? Note its duration and how many stages it has. Many short jobs in a loop is a different problem (driver-side orchestration) than one long job.</li>
+        <li><strong>SQL / DataFrame tab.</strong> For the slow query, open the graph. This is the highest-signal view: per-operator row counts, the join strategies actually chosen, every <code>Exchange</code> (shuffle), and whether AQE rewrote anything. A scan reading 2 billion rows into a filter that keeps 2 million tells you pushdown or file layout failed.</li>
+        <li><strong>Stages tab.</strong> For the dominant stage, read the summary metrics table - min/25th/median/75th/max for duration, shuffle read, shuffle write, spill. Skew, spill, and tiny-task overhead are all visible here in one screen.</li>
+        <li><strong>Task metrics.</strong> Shuffle Read/Write sizes tell you how heavy the boundary was; <strong>GC time</strong> as a large fraction of task time signals memory pressure (often co-occurring with spill); scheduler delay signals too many tiny tasks.</li>
+        <li><strong>Executors tab.</strong> Dead executors, uneven task distribution, storage memory usage from caching. On Databricks, pair this with cluster metrics for CPU/memory saturation.</li>
+      </ol>
+      <div class="callout interview">
+        <p><strong>"A nightly pipeline that ran in 45 minutes now takes 3 hours. Nothing was deployed. How do you investigate?"</strong></p>
+        <p>Strong answer outline: (1) Compare the slow run's Spark UI against a healthy run - same jobs/stages, or new ones? (2) Data first: input volume growth, a skewed key that newly appeared (month-end, a backfill, a null explosion from an upstream source change). (3) Check the SQL tab for a changed plan - a join that lost its broadcast because the dimension grew past the threshold is the classic silent regression. (4) Check stage metrics for new spill or skew. (5) Only then look at infrastructure: spot-instance loss, autoscaling behavior, concurrent workloads on shared compute. Close with prevention: monitoring on input volumes and run durations, which is exactly what runbooks and hypercare are for.</p>
+      </div>
+
+      <h2>cache() / persist(): semantics and pitfalls</h2>
+      <p><code>df.cache()</code> is <code>persist(StorageLevel.MEMORY_AND_DISK)</code> for DataFrames: partitions are materialized the first time an action computes them, stored in executor memory and overflowing to disk, and reused by later actions. Key semantics:</p>
+      <ul>
+        <li>Caching is <strong>lazy</strong> - nothing is stored until an action runs. <code>df.cache(); df.count()</code> is the common materialization idiom.</li>
+        <li>It helps only when the same DataFrame is reused by <strong>multiple actions</strong> (iterative logic, a branch point feeding several outputs). A cache used once is pure overhead.</li>
+        <li>Cached blocks consume the same unified memory pool execution needs - over-caching causes eviction (recompute later) and increases spill pressure elsewhere.</li>
+        <li><strong>Release it</strong> with <code>df.unpersist()</code> when done; check the Storage tab to see what's actually resident.</li>
+      </ul>
+      <div class="callout warn">On Databricks, reflexive <code>cache()</code> is usually the wrong instinct. Delta tables behind disk caching on classic compute already serve repeated reads fast, and caching a huge mid-pipeline DataFrame "just in case" can evict useful blocks, inflate GC, and pin a stale snapshot of data that's being updated underneath you. Cache deliberately: a small-to-medium DataFrame, demonstrably reused, unpersisted afterwards.</div>
+
+      <p>This module is the foundation for everything downstream in the DE track: Delta Lake's OPTIMIZE, clustering, and file-size management are largely about making the scan and shuffle story above cheaper before Spark even starts.</p>
+    </article>
+
+    <div class="pagenav"><a href="de-track.html"><span class="label">Previous</span>Data Engineer Track</a><a class="next" href="de-delta.html"><span class="label">Next</span>Delta Lake Deep Dive</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

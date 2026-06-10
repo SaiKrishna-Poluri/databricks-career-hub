@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Streaming &amp; Incremental Ingestion · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="de-track.html">Data Engineer Track</a> / Streaming &amp; Incremental Ingestion</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge de">DE Track · Module 03</span>
+        <h1>Streaming &amp; Incremental Ingestion</h1>
+        <p class="lede">Structured Streaming, Auto Loader, and the incremental patterns behind every modern ingestion question.</p>
+      </header>
+
+      <h2>The Structured Streaming mental model</h2>
+      <p>Structured Streaming treats a stream as an <strong>unbounded table</strong>: new records are rows that keep getting appended, and your query is a normal DataFrame transformation that Spark re-evaluates <strong>incrementally</strong> as data arrives. You write the logic once; the engine figures out what changed since the last run and processes only that delta. Execution happens in <strong>micro-batches</strong> — small bounded jobs scheduled by a trigger — which is why a streaming query on Databricks behaves like a fast loop of batch jobs rather than record-at-a-time processing.</p>
+      <p>This is the single most useful framing for interviews, because it collapses "batch vs streaming" into one question: <strong>how often do you trigger the increment?</strong> Run it continuously and you have a low-latency stream. Run it once a day with <code>Trigger.AvailableNow</code> and you have an incremental batch job that never re-reads old data. Same code, same checkpoint, different schedule.</p>
+
+      <h3>Sources and sinks on Databricks</h3>
+      <ul>
+        <li><strong>Sources:</strong> Delta tables (streaming reads of appends, and change feeds via CDF), Auto Loader over cloud object storage (ADLS Gen2, S3, GCS), Kafka / Event Hubs (Kafka-compatible endpoint), Kinesis, and rate/socket sources for testing. A valid streaming source must be <strong>replayable</strong> — you can re-request a given offset range.</li>
+        <li><strong>Sinks:</strong> Delta tables (the default and best choice — its transaction log makes writes idempotent per batch), Kafka, <code>forEachBatch</code> for arbitrary logic (MERGE, multiple tables, JDBC), and memory/console for debugging.</li>
+      </ul>
+      <p>On Databricks the dominant pattern is <strong>files or events in, Delta out</strong>, hop by hop through Bronze → Silver → Gold, with each hop a streaming read of the previous Delta table.</p>
+
+      <h2>Checkpointing: the part you must get exactly right</h2>
+      <p>Every streaming query owns a <strong>checkpoint location</strong> — a directory the engine uses to record its progress. Inside it stores:</p>
+      <ul>
+        <li><strong>Offsets (write-ahead log):</strong> which range of source data each micro-batch intends to process, written <em>before</em> processing starts.</li>
+        <li><strong>Commits:</strong> which micro-batches finished successfully.</li>
+        <li><strong>State store data:</strong> running aggregates, join buffers, deduplication keys for stateful queries.</li>
+        <li><strong>Source metadata:</strong> for Auto Loader, the ledger of which files have already been ingested.</li>
+      </ul>
+      <p>Rules you should be able to recite cold:</p>
+      <ul>
+        <li><strong>One checkpoint per query, never shared.</strong> Two queries writing to the same checkpoint corrupt each other's progress tracking.</li>
+        <li><strong>Never delete a checkpoint casually.</strong> Deleting it resets the query to "I have seen nothing," so the next run reprocesses everything the source still exposes — duplicates in your sink unless the write path is idempotent or you also reset the target.</li>
+        <li><strong>The checkpoint pins the query's identity.</strong> Some changes (different aggregation keys, changed source path semantics, some schema changes to stateful operators) invalidate it; plan a controlled reset when logic changes materially.</li>
+      </ul>
+
+      <h3>Exactly-once semantics</h3>
+      <p>Structured Streaming into Delta gives <strong>end-to-end exactly-once</strong> from two ingredients working together:</p>
+      <ul>
+        <li><strong>Replayable source:</strong> if batch 42 fails mid-flight, the engine re-requests the same offset range and reprocesses it.</li>
+        <li><strong>Idempotent sink:</strong> the Delta sink records the batch ID in the transaction log, so a replayed batch 42 is recognized and not written twice.</li>
+      </ul>
+      <p>Break either ingredient and you degrade to at-least-once. The classic break: using <code>forEachBatch</code> to write to a non-transactional target (JDBC, REST API) without making the write idempotent yourself — e.g., keying a MERGE on a natural key, or tracking <code>batchId</code> in the target. Also note <code>forEachBatch</code> can re-execute a batch on failure, so any side effects inside it must tolerate replay.</p>
+
+      <div class="callout warn">
+        <p><strong>Pitfall: "we'll just restart it from scratch."</strong> Deleting a checkpoint to "fix" a stuck stream is the streaming equivalent of <code>rm -rf</code> on your bookkeeping. Auto Loader's ingested-file ledger lives in that checkpoint — delete it and the next run re-ingests every file still in the source path into your Bronze table as duplicates. If you genuinely need a reset, do it deliberately: new checkpoint <em>plus</em> a truncated/recreated target, or a dedup-aware MERGE downstream. And never point two streams at one checkpoint to "share progress" — each query needs its own.</p>
+      </div>
+
+      <h2>Triggers: how often the increment runs</h2>
+      <ul>
+        <li><strong>Default (micro-batch as fast as possible):</strong> start the next batch as soon as the previous one finishes. Lowest latency on a continuously running cluster, highest cost.</li>
+        <li><strong><code>Trigger.ProcessingTime("5 minutes")</code>:</strong> fixed-interval micro-batches; the standard knob for "near-real-time but not frantic."</li>
+        <li><strong><code>Trigger.AvailableNow</code>:</strong> process <em>everything available right now</em> in one or more rate-limited micro-batches, then stop. This is "streaming as batch" — you get checkpoint-tracked incremental processing, exactly-once guarantees, and Auto Loader file tracking, but the job terminates and the cluster can shut down. Schedule it from Lakeflow Jobs hourly or nightly and you have an incremental batch pipeline with zero hand-rolled watermark tables. It replaces the older <code>Trigger.Once</code>, which tried to cram everything into a single batch and fell over on large backlogs.</li>
+        <li><strong>Continuous trigger:</strong> millisecond-latency experimental mode; know it exists, say it's rarely used, move on.</li>
+      </ul>
+      <pre><code># "Streaming as batch": incremental run that drains the backlog, then exits.
+(spark.readStream
+    .table("finance_bronze.gl_postings")
+    .where("doc_status = 'POSTED'")
+    .writeStream
+    .option("checkpointLocation", chk_path + "/gl_silver")
+    .trigger(availableNow=True)
+    .toTable("finance_silver.gl_postings"))
+</code></pre>
+
+      <div class="callout tip">
+        <p><strong><code>Trigger.AvailableNow</code> is the answer to more interview questions than any other trigger.</strong> "How would you make a nightly file load incremental without tracking filenames yourself?" "How do you backfill then switch to scheduled runs?" "How do you control cost on a low-volume stream?" — all three resolve to: write it as a stream, run it with AvailableNow on a job schedule, let the checkpoint do the bookkeeping.</p>
+      </div>
+
+      <h3>Output modes</h3>
+      <ul>
+        <li><strong>Append</strong> (default): only new rows are written. Required for plain transformations; for windowed aggregations with a watermark, a window's row is emitted once the watermark says it can no longer change.</li>
+        <li><strong>Update:</strong> rewrite only rows that changed since the last batch. Useful with sinks that can upsert (or <code>forEachBatch</code> + MERGE).</li>
+        <li><strong>Complete:</strong> rewrite the entire result table every batch. Only viable for small aggregate results (e.g., a top-N leaderboard); the engine must retain all aggregate state.</li>
+      </ul>
+
+      <h2>Watermarks, late data, and state</h2>
+      <p>Stateful operations — windowed aggregations, stream-stream joins, <code>dropDuplicates</code> — must buffer state, and without a bound that state grows forever. A <strong>watermark</strong> is your declaration of how late data is allowed to be: "track the max event time seen, subtract 10 minutes; anything older is too late." The engine then knows when a window is finalized, can emit it in append mode, and can purge its state.</p>
+      <pre><code># Tolerate 10 minutes of lateness; count events per 5-minute window.
+from pyspark.sql import functions as F
+
+(events
+    .withWatermark("event_time", "10 minutes")
+    .groupBy(F.window("event_time", "5 minutes"), "plant_id")
+    .agg(F.count("*").alias("event_count"))
+    .writeStream
+    .outputMode("append")
+    .option("checkpointLocation", chk_path + "/plant_counts")
+    .toTable("ops_silver.plant_event_counts"))
+</code></pre>
+      <p>Trade-off to articulate: a <strong>longer watermark</strong> catches more late stragglers but holds more state and delays results in append mode; a <strong>shorter watermark</strong> is cheap and fast but silently drops anything later than the threshold. There is no free lunch — pick based on how the source actually misbehaves.</p>
+      <p><strong>Stateful joins, at a high level:</strong> stream-static joins (stream joined to a Delta dimension table) are stateless on the stream side and just work — the static side is re-read per batch, so dimension updates are picked up. Stream-stream joins buffer both sides in state and need watermarks plus a time-range join condition so the engine knows when buffered rows can be evicted. If you're asked to design one, lead with "define watermarks on both sides and a join window, or state grows unbounded."</p>
+
+      <div class="callout interview">
+        <p><strong>"Your stream emits no results for windowed aggregations, or drops some late records. Walk me through why."</strong></p>
+        <p>Strong outline: (1) In append mode a windowed aggregate emits only when the watermark passes the window end — if the source goes quiet, the watermark stops advancing (it's driven by observed event time, not wall-clock), so the last window can sit unemitted. (2) Records older than <code>max(event_time) − watermark delay</code> are dropped by design; check whether the producer's clock skew or batch upload pattern exceeds the delay. (3) Mitigations: lengthen the watermark, or land everything in Bronze in append mode without aggregation and aggregate in a later hop where you can reprocess. Bonus point: state cleanup is what the watermark buys you — without it, the job eventually dies of state bloat, so "just remove the watermark" is not a fix.</p>
+      </div>
+
+      <h2>Auto Loader (cloudFiles): incremental file ingestion done for you</h2>
+      <p>Auto Loader is a Structured Streaming source (<code>format("cloudFiles")</code>) that incrementally ingests new files from cloud storage. It solves the problem every hand-rolled batch loader eventually drowns in: <strong>which files have I already processed?</strong> Auto Loader keeps that ledger in the checkpoint (a scalable key-value store), so it handles millions of files without a control table, processes each file exactly once, and recovers cleanly from failures.</p>
+      <pre><code># Auto Loader: incremental JSON ingestion into Bronze with schema evolution.
+(spark.readStream
+    .format("cloudFiles")
+    .option("cloudFiles.format", "json")
+    .option("cloudFiles.schemaLocation", chk_path + "/wire_bronze/schema")
+    .option("cloudFiles.schemaEvolutionMode", "addNewColumns")
+    .load("abfss://landing@adlsacct.dfs.core.windows.net/webwire/")
+    .select("*", F.col("_metadata.file_path").alias("source_file"),
+            F.current_timestamp().alias("ingested_at"))
+    .writeStream
+    .option("checkpointLocation", chk_path + "/wire_bronze")
+    .trigger(availableNow=True)
+    .toTable("finance_bronze.webwire_events"))
+</code></pre>
+      <h3>What makes it more than a file watcher</h3>
+      <ul>
+        <li><strong>Schema inference and evolution:</strong> it samples files to infer a schema, persists it at <code>cloudFiles.schemaLocation</code>, and — with <code>addNewColumns</code> — when a new column appears it fails the stream once, updates the schema, and picks the new column up on restart (Lakeflow Jobs retries make this hands-off). Other modes: <code>rescue</code> (never change schema, shunt new fields to rescue), <code>failOnNewColumns</code>, <code>none</code>.</li>
+        <li><strong>Rescued data column:</strong> <code>_rescued_data</code> captures fields that didn't match the schema — type mismatches, case differences, extra attributes — as JSON instead of dropping them. You keep every byte in Bronze and triage later; that's the medallion philosophy enforced by the tool.</li>
+        <li><strong>Directory listing vs file notification mode:</strong> default mode lists the directory to find new files (incremental listing where storage supports it) — zero extra setup, fine up to thousands-of-files-per-batch scale. File notification mode subscribes to storage events (on Azure: Event Grid + queue) so discovery is push-based — the right choice for very high file arrival rates or enormous directories where listing itself becomes the bottleneck. Trade-off: notification mode needs cloud permissions to provision the event infrastructure, and a periodic backfill listing (<code>cloudFiles.backfillInterval</code>) is recommended to catch any missed events.</li>
+        <li><strong>Why it beats hand-rolled tracking:</strong> no control table to maintain, no "last modified timestamp" race conditions, no duplicate loads when a job is rerun, exactly-once per file, and built-in observability of backlog. Everything you'd build in a metadata framework's file-audit layer, you get for one option string.</li>
+      </ul>
+
+      <div class="callout story">
+        <p>Be precise about this in interviews: production ingestion at ADM, the Port Authority, and Maersk was <strong>batch and metadata-driven</strong> — ADF pipelines parameterized from control metadata, driving PySpark loads into Delta on ADLS Gen2. You built and operated exactly the file-tracking and watermarking machinery Auto Loader replaces, which is why you can explain its value concretely: every audit column, rerun-safety check, and control-table update your framework handled by hand is what <code>cloudFiles</code> gives you out of the box. Auto Loader and COPY INTO themselves are platform knowledge and lab practice for you, not production claims — and saying so cleanly builds trust before you go deep on the mechanics.</p>
+      </div>
+
+      <h2>COPY INTO vs Auto Loader</h2>
+      <table>
+        <thead>
+          <tr><th>Dimension</th><th>COPY INTO</th><th>Auto Loader</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Interface</td><td>SQL command, batch semantics</td><td>Structured Streaming source (<code>cloudFiles</code>)</td></tr>
+          <tr><td>File tracking</td><td>Tracks loaded files internally; idempotent on rerun</td><td>Checkpoint-backed ledger; exactly-once per file</td></tr>
+          <tr><td>Scale sweet spot</td><td>Thousands of files; degrades as directories grow large</td><td>Millions to billions of files; notification mode for high arrival rates</td></tr>
+          <tr><td>Schema evolution</td><td>Limited (explicit options, more manual)</td><td>First-class: inference, evolution modes, <code>_rescued_data</code></td></tr>
+          <tr><td>Latency</td><td>Scheduled batch only</td><td>Continuous, micro-batch, or AvailableNow — your choice</td></tr>
+          <tr><td>Operator profile</td><td>SQL-first teams, simple one-off or low-volume loads</td><td>Engineering teams, ongoing ingestion pipelines</td></tr>
+          <tr><td>Current guidance</td><td>Legacy-leaning; fine for ad hoc loads</td><td>Databricks' recommended default for file ingestion (and what Lakeflow Spark Declarative Pipelines use under the hood)</td></tr>
+        </tbody>
+      </table>
+      <p>Decision rule of thumb: <strong>default to Auto Loader</strong> for any recurring file ingestion; reach for COPY INTO when a SQL-only user needs a quick idempotent load of a modest directory. As of mid-2026, Databricks docs steer new ingestion toward Auto Loader or managed Lakeflow Connect connectors, with COPY INTO positioned for simpler cases.</p>
+
+      <h2>Backfill and reprocessing patterns</h2>
+      <ul>
+        <li><strong>Initial backfill = the same stream:</strong> point Auto Loader at the full historical directory and run with <code>Trigger.AvailableNow</code>; <code>cloudFiles.maxFilesPerTrigger</code> / <code>maxBytesPerTrigger</code> rate-limit so the backlog drains in controlled micro-batches instead of one monster batch. When it finishes, the same checkpoint carries you into incremental mode — no separate backfill code path.</li>
+        <li><strong>Reprocess a slice:</strong> options in increasing severity — (1) re-land corrected files under new names (Auto Loader sees them as new); (2) run a separate batch job for the affected range and MERGE into the target; (3) full reset: new checkpoint + recreate target. Never surgically edit checkpoint contents.</li>
+        <li><strong>Logic changes downstream:</strong> keep Bronze append-only and immutable; rebuild Silver/Gold from Bronze when transformations change. This is the strongest argument for landing raw data even when stakeholders only asked for the curated layer.</li>
+        <li><strong>Missed-event insurance:</strong> in file notification mode, set a backfill interval so a periodic listing sweep catches anything the event pipeline dropped.</li>
+      </ul>
+
+      <h2>Batch vs streaming: the decision framework</h2>
+      <table>
+        <thead>
+          <tr><th>Factor</th><th>Favors batch / AvailableNow</th><th>Favors continuous streaming</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Latency requirement</td><td>Consumers act hourly/daily (finance close, reporting)</td><td>Decisions degrade in minutes (fraud, ops monitoring, inventory)</td></tr>
+          <tr><td>Source behavior</td><td>Files/extracts arrive on a schedule; upstream is itself batch</td><td>True event firehose (Kafka/Event Hubs), continuous arrivals</td></tr>
+          <tr><td>Cost</td><td>Cluster runs minutes per day; serverless jobs spin up on demand</td><td>Always-on compute; justify it with the latency requirement</td></tr>
+          <tr><td>Complexity &amp; ops</td><td>Simple retries, easy reprocessing, junior-friendly runbooks</td><td>Watermarks, state, checkpoint hygiene, 24/7 monitoring</td></tr>
+          <tr><td>Semantics needed</td><td>Point-in-time consistency at a cut-off (e.g., "as of close")</td><td>Freshest-possible view, eventual completeness acceptable</td></tr>
+        </tbody>
+      </table>
+      <p>The senior-engineer answer is rarely "stream everything." It's: <strong>write pipelines as incremental streaming code, then choose the trigger that matches the business latency requirement</strong> — which is usually AvailableNow on a schedule, upgraded to ProcessingTime only where someone can articulate the cost of staleness.</p>
+
+      <div class="callout story">
+        <p>You have a real fit-gap story here. At ADM, part of your role is making architecture recommendations — explicitly including <strong>batch vs near-real-time trade-offs</strong> — to stakeholders for Finance R2R workloads. Sources like JDE, SAP, and HFM produce data on accounting cadences, and CFO-level consumers act on close-cycle and reporting timelines, so your recommendation weighed latency need against always-on compute cost and operational complexity, and landed on scheduled batch with tight orchestration (ADF + Lakeflow Jobs + Redwood RunMyJobs) rather than streaming for its own sake. Tell it that way: you didn't avoid streaming because you couldn't build it — you advised against paying for latency nobody would consume.</p>
+      </div>
+
+      <div class="callout interview">
+        <p><strong>"Would you use Auto Loader or COPY INTO to ingest daily SAP extracts landing in ADLS, and why?"</strong></p>
+        <p>Strong outline: (1) Default to Auto Loader: checkpoint-tracked exactly-once file ingestion, schema evolution with <code>_rescued_data</code> for the inevitable extract format drift, and it scales as file counts grow. (2) Run it with <code>Trigger.AvailableNow</code> on a Lakeflow Jobs schedule — batch economics, streaming bookkeeping. (3) Directory listing mode suffices at daily-extract volume; mention notification mode as the scale escape hatch. (4) COPY INTO is acceptable if the team is SQL-only and volume is small, but you'd still pick Auto Loader for an ongoing pipeline. (5) Close honestly: your production loaders were metadata-driven ADF + PySpark, so you can compare the hand-rolled approach to Auto Loader from direct experience of what the framework had to manage.</p>
+      </div>
+
+      <div class="callout tip">
+        <p>When asked anything about "incremental," name the bookkeeping explicitly. Weak answers say "we process only new data." Strong answers say <em>where the progress is recorded</em>: source offsets and the file ledger in the checkpoint, batch IDs in the Delta log for sink idempotency, and the schema history at the schema location. Interviewers probe exactly these seams.</p>
+      </div>
+
+      <h2>Self-check before moving on</h2>
+      <ul>
+        <li>Explain why exactly-once needs <em>both</em> a replayable source and an idempotent sink — and which one <code>forEachBatch</code> puts at risk.</li>
+        <li>List what lives in a checkpoint and what happens operationally if you delete one under an Auto Loader stream.</li>
+        <li>Contrast <code>Trigger.AvailableNow</code> with the default trigger and with the deprecated <code>Trigger.Once</code>.</li>
+        <li>Given "events can arrive up to 30 minutes late," write the watermark line and state the cost of doubling it.</li>
+        <li>Defend a batch recommendation to a stakeholder who asked for "real-time" — using latency need, cost, and ops complexity.</li>
+      </ul>
+    </article>
+
+    <div class="pagenav"><a href="de-delta.html"><span class="label">Previous</span>Delta Lake Deep Dive</a><a class="next" href="de-lakeflow.html"><span class="label">Next</span>Lakeflow: Jobs &amp; Declarative Pipelines</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

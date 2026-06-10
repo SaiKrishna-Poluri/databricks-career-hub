@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Worked Case Studies · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="rsa-track.html">Resident Solutions Architect Track</a> / Worked Case Studies</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge rsa">RSA Track · Module 06</span>
+        <h1>Worked Case Studies</h1>
+        <p class="lede">Four full customer scenarios worked the way an RSA panel expects - discovery to architecture to risks to outcome.</p>
+      </header>
+
+      <p>The panel presentation is the decisive RSA round: you get a scenario in advance, the panel roleplays customer stakeholders, and they push back on cost and complexity on purpose. The fastest way to get good at it is to pre-work a small set of cases until the structure is muscle memory: situation, discovery, architecture, wave plan, risks, metrics, talk track. These four map directly onto your own history, so two of them are lived experience and two are honest extensions of it.</p>
+
+      <div class="callout tip">In every case below, the discovery section comes before the architecture on purpose. The single most common panel failure mode is solutioning in the first two minutes. Open every case - in this room and in a real engagement - with three or four questions, and let the answers visibly shape the design.</div>
+
+      <h2>Case 1 - Enterprise Finance Record-to-Report on one governed lakehouse</h2>
+      <p><strong>Situation.</strong> A global manufacturer runs finance across JDE, SAP, and HFM (Hyperion). Month-end close reporting is assembled by analysts from extracts; the CFO's office gets numbers days late and no two systems agree. They want consolidated Record-to-Report analytics - P&amp;L, Budget vs Actual, expense forecasting, capital allocation - on a single governed platform.</p>
+      <p><strong>Discovery.</strong> Questions you ask: Which system is the ledger of record per entity? How is the chart of accounts mapped across JDE and SAP? Where do HFM journal adjustments and eliminations land? What is the close calendar, and which reports gate sign-off? Who is allowed to see which entities' numbers? What you typically learn: the COA mapping lives in spreadsheets, currency translation is done three different ways, and the real requirement is not "a lakehouse" - it is <em>one trusted trial-balance tie-out that finance can audit</em>.</p>
+      <p><strong>Architecture.</strong> Metadata-driven ingestion (ADF, or Lakeflow Connect where a managed connector exists) lands source extracts and CDC feeds into a Bronze Delta layer on ADLS. Silver conforms the chart of accounts, entity master, and FX into a single dimensional model with SCD handling; Gold serves finance marts - P&amp;L, BvA, forecast - as the one place KPI logic lives. Unity Catalog provides lineage, access control by legal entity, and audit; serving goes to Power BI and AI/BI dashboards for executive consumers. Orchestrate with Lakeflow Jobs aligned to the close calendar; use liquid clustering (<code>CLUSTER BY AUTO</code>) on the large fact tables.</p>
+<pre><code>JDE / SAP / HFM / DB2
+   --&gt; ADF metadata-driven ingest --&gt; Bronze (Delta, as-landed)
+   --&gt; Silver: conformed COA + entity + FX, SCD2 dims
+   --&gt; Gold: P&amp;L / BvA / forecast marts (one KPI definition)
+   --&gt; Unity Catalog: lineage, entity-level access, audit
+   --&gt; Power BI + AI/BI dashboards (CFO / Exec Committee)
+Orchestration: Lakeflow Jobs + ADF, close-calendar aware</code></pre>
+      <p><strong>Wave plan.</strong> Wave 1: one ledger (say JDE), Bronze-to-Gold for P&amp;L only, reconciled to the trial balance - prove the tie-out. Wave 2: add SAP and the COA conform layer, then BvA. Wave 3: HFM adjustments, eliminations, forecasting, and self-serve via Genie. <strong>Risks:</strong> COA mapping ownership (mitigate: make finance the data steward of the mapping table, not IT); restatements breaking history (mitigate: period-lock pattern plus Delta time travel for audit); KPI definition fights (mitigate: one Gold definition, signed off, surfaced through Unity Catalog metric views). <strong>Metrics:</strong> close-reporting latency in days, count of reconciling differences vs ledger at each layer, percent of exec reports on the governed platform, retirement of spreadsheet extracts.</p>
+      <p><strong>Panel talk track.</strong> Lead with the tie-out, not the technology: "Finance does not trust pretty dashboards; finance trusts reconciliation. So wave 1 is one ledger, one statement, proven to the penny." Then show the diagram. This case is your anchor.</p>
+
+      <div class="callout story">This is not a hypothetical - it is your day job. At ADM you lead Finance R2R analytics delivery end to end: Bronze/Silver/Gold on Azure Databricks and ADF integrating JDE, SAP, HFM, IBM DB2, and APGO Web Wire into Delta with Unity Catalog governance, serving P&amp;L, Budget vs Actual, expense forecasting, EHS, and capital-allocation KPIs to Executive Committee and CFO-level consumers. Present this case in first person with real decisions you made. It is your strongest panel material - if the panel lets you choose the scenario, choose this one.</div>
+
+      <details><summary>Hard follow-up: "Why Databricks for this and not Snowflake? Finance is mostly SQL and BI."</summary><p>Concede the surface point, then differentiate on the whole workload: the hard part of R2R is not serving SQL, it is the conforming engineering - parsing HFM hierarchies, CDC from JDE/SAP, SCD handling, FX logic - which is Spark work, plus lineage and entity-level governance for audit, plus the forecasting and GenAI roadmap. One platform (engineering + warehousing + governance + AI) beats a two-platform estate where ETL lives somewhere ungoverned. Close with cost: serverless SQL warehouses for the BI tier, job compute for transforms, no double storage.</p></details>
+      <details><summary>Hard follow-up: "What happens when finance restates prior periods?"</summary><p>Design for it instead of treating it as an exception: reprocessing windows keyed by fiscal period, adjustments flow as new journal facts rather than updates where possible, Delta time travel and table history give the audit trail of what the number was when it was reported, and a period-lock convention prevents silent rewrites of closed months.</p></details>
+
+      <h2>Case 2 - Legacy SQL Server / SSIS / SSAS estate to Azure Databricks with zero reporting disruption</h2>
+      <p><strong>Situation.</strong> A bank runs a decade-old estate: SQL Server warehouses, hundreds of SSIS packages, SSAS multidimensional cubes, SSRS and Excel on top. License costs and an aging platform are forcing a move, but the business mandate is blunt: <em>not one report changes, not one number drifts.</em></p>
+      <p><strong>Discovery.</strong> Ask: How many packages actually still run, and which feed regulatory reports? Who owns the MDX in the cubes - is the logic documented anywhere outside the cube? What is the nightly batch window and what breaks if it slips? What you learn: maybe 40 percent of packages are dead, the cube measures encode years of undocumented business rules, and the real constraint is reconciliation sign-off by finance and risk, not engineering speed.</p>
+      <p><strong>Architecture.</strong> Re-platform, do not lift-and-shift the code. CDC from SQL Server (Lakeflow Connect's SQL Server connector is a managed option here) into Bronze; SSIS transformation logic rebuilt as PySpark and Databricks SQL in Silver/Gold rather than ported package-by-package; cube measures inventoried and rebuilt in Gold plus the Power BI semantic model, with Unity Catalog metric views as the governed measure layer. Orchestration moves from SQL Agent to Lakeflow Jobs.</p>
+      <table>
+        <thead><tr><th>Legacy component</th><th>Databricks target</th><th>Migration note</th></tr></thead>
+        <tbody>
+          <tr><td>SSIS packages</td><td>ADF ingestion + PySpark / Databricks SQL</td><td>Rebuild logic, don't port packages; retire the dead 40%</td></tr>
+          <tr><td>SQL Server DW tables</td><td>Delta tables, medallion layers</td><td>CDC ingest; liquid clustering on large facts</td></tr>
+          <tr><td>SSAS multidimensional cube</td><td>Gold marts + Power BI semantic model / UC metric views</td><td>Measure inventory first; MDX logic is the hidden scope</td></tr>
+          <tr><td>SSRS reports</td><td>Power BI / AI/BI dashboards</td><td>Pixel-perfect regulatory reports may stay longest</td></tr>
+          <tr><td>SQL Agent jobs</td><td>Lakeflow Jobs</td><td>Recreate dependencies explicitly, not by schedule-time luck</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Parallel-run reconciliation - the heart of this case.</strong> Both stacks run for one or more full reporting cycles. A reconciliation harness compares legacy vs new output at three grains: control totals per table, measure values per report page, and row-level samples on the riskiest facts, with agreed tolerance (exact for ledger figures). Each report family gets a sign-off gate owned by its business consumer; legacy is decommissioned per family only after sign-off, never globally.</p>
+<pre><code>SQL Server --CDC--&gt; Bronze --&gt; Silver --&gt; Gold --&gt; new reports
+SQL Server --SSIS--&gt; legacy DW --&gt; SSAS --&gt; old reports
+                  |                          |
+                  +--- reconciliation harness +
+                       totals / measures / row samples
+                       --&gt; sign-off gate per report family</code></pre>
+      <p><strong>Wave plan.</strong> Wave 0: inventory and triage (dead package analysis, measure catalogue). Wave 1: one low-risk subject area end to end, harness proven. Waves 2-n: report family by report family, regulatory last. <strong>Risks:</strong> undocumented MDX semantics (mitigate: measure inventory as a paid discovery deliverable); dual-run cost (mitigate: time-boxed per family, framed as the insurance premium on zero disruption); legacy team morale (mitigate: they staff the harness - they know where the bodies are buried). <strong>Metrics:</strong> packages retired, report families signed off, reconciliation break count trending to zero, license and batch-window reduction.</p>
+      <p><strong>Panel talk track.</strong> "Zero disruption is a process guarantee, not a technology guarantee - so the deliverable I'm selling is the reconciliation harness and the sign-off gates, and Databricks is what makes the new side worth cutting over to."</p>
+
+      <div class="callout story">You have run both halves of this case. At Microsoft Worldwide Payment Services you migrated on-prem SQL Server/SSIS to Azure SQL DB and ADF (including SSIS IR as a bridge) and moved SSRS to Power BI; at Maersk you migrated SSAS multidimensional cubes to Azure Analysis Services Tabular inside a finance program feeding S/4HANA and HFM data into a Delta lakehouse. Your resume cites a $10M annual infrastructure cost reduction at Maersk - treat that figure as "verify before quoting externally" and lead with the migration mechanics instead.</div>
+
+      <div class="callout warn">Never present a big-bang cutover, and never let the panel talk you into one "to save dual-run cost." Big-bang on a regulated reporting estate is how migrations end up in the news. If the panel pushes on parallel-run cost, the answer is to shorten the run per report family and prioritize retirement order - not to delete the safety net.</div>
+
+      <details><summary>Hard follow-up: "Why not just run SSIS on the SSIS Integration Runtime in ADF and be done?"</summary><p>You can answer from experience: you used SSIS IR at Microsoft as exactly this kind of bridge. It is a legitimate wave-0 move to get off the on-prem servers fast, but it preserves the package sprawl, the single-threaded skills dependency, and the licensing model - it relocates the problem. Position it as an optional transition state with a funded exit, never the destination.</p></details>
+      <details><summary>Hard follow-up: "Our analysts live in the cube. What exactly replaces drag-and-drop MDX?"</summary><p>The Power BI semantic model gives them the same drag-and-drop experience over Gold; Unity Catalog metric views keep measure definitions governed and reusable beyond one BI tool; and AI/BI Genie adds natural-language access the cube never had. The honest cost: MDX-to-DAX translation of complex calculated measures is real engineering work - which is why the measure inventory is wave 0, not an afterthought.</p></details>
+
+      <h2>Case 3 - Transit authority: from Access/VBA to near-real-time operational analytics</h2>
+      <p><strong>Situation.</strong> A transit authority reports ridership and station operations from MS Access databases and VBA macros maintained by one analyst. Leadership wants "real-time" dashboards over ridership, fare gates, and equipment IoT telemetry. The estate is fragile, undocumented, and the analyst is retiring.</p>
+      <p><strong>Discovery.</strong> Ask: What decisions would a fresher number actually change, and at what latency - operations control at minutes, or planning at daily? What are the feeds (fare-gate transactions, vehicle GPS/IoT, scheduled CSV drops)? Who reconciles ridership against revenue? What you learn: 80 percent of consumers need reliable daily data first; only the operations center has a genuine minutes-level use case. So the honest design is <em>batch-first, streaming uplift second</em> - and saying that to a customer who asked for "real time" is itself the consulting skill being tested.</p>
+      <p><strong>Architecture.</strong> Phase 1 replaces the Access/VBA estate with parameterized, metadata-driven batch pipelines into Bronze/Silver/Gold Delta, daily and hourly, with Unity Catalog governance and AI/BI dashboards. Phase 2 uplifts the hot path: incremental file ingestion via Auto Loader, IoT events through an event hub (or Zerobus Ingest for direct event writes) into Structured Streaming with watermarking for late events, landing in streaming tables that feed a thin real-time layer for the operations center only. Same medallion, two freshness tiers.</p>
+<pre><code>Phase 1 (batch-first):
+  fare gates / GPS / CSV drops --&gt; scheduled ingest --&gt; Bronze
+  --&gt; Silver (conformed trips, stations) --&gt; Gold daily/hourly marts
+  --&gt; AI/BI dashboards; Lakeflow Jobs orchestration
+Phase 2 (streaming uplift, ops center only):
+  IoT/events --&gt; Event Hub / Zerobus --&gt; Structured Streaming
+  --&gt; watermark late events --&gt; streaming tables --&gt; ops dashboard
+Two freshness tiers, one governed lakehouse</code></pre>
+      <p><strong>Wave plan.</strong> Wave 1: decommission Access/VBA, daily batch, parity with existing reports. Wave 2: hourly refresh plus data quality gates. Wave 3: streaming for the ops-center use case, with a defined freshness SLA per tier. <strong>Risks:</strong> device schema drift (mitigate: permissive Bronze with rescued data, schema enforcement at Silver); small-file storms from event ingestion (mitigate: streaming table compaction, predictive optimization); "real-time everything" scope creep (mitigate: freshness SLA tiers priced separately, so latency becomes a costed business decision). <strong>Metrics:</strong> retirement of the Access estate, report latency per tier, pipeline failure rate vs the VBA baseline, ridership-to-revenue reconciliation accuracy.</p>
+      <p><strong>Panel talk track.</strong> "You asked for real time; discovery says one team needs minutes and everyone else needs trustworthy daily. I'll give you both - in that order - and you'll pay for streaming only where it changes a decision." See <a href="de-streaming.html">the streaming module</a> for the mechanics you should be able to whiteboard under questioning.</p>
+
+      <div class="callout interview"><p><strong>"Have you actually run this streaming design in production?"</strong> - the honesty trap, and you should walk into it prepared. Strong answer: "My production work is batch and near-real-time - at the Port Authority of NY &amp; NJ I migrated exactly this kind of legacy VBA/Access ridership estate to parameterized Azure Synapse pipelines and Power BI, and at ADM I run orchestrated Lakeflow Jobs and ADF pipelines daily. Structured Streaming and Auto Loader are lab and design knowledge for me - so let me show you I understand the failure modes: late events and watermarks, state-store growth, small files, idempotent sinks - and how I'd de-risk wave 3 with a pilot on one feed." Owning the boundary and then demonstrating depth past it scores higher than a bluff that collapses on the first internals question.</p></div>
+
+      <details><summary>Hard follow-up: "Why not just stream everything? Storage is cheap and you're building the plumbing anyway."</summary><p>Streaming is an operating-cost and operational-complexity commitment, not a storage decision: always-on compute, state management, harder testing, on-call expectations. If a planning report is consumed each morning, minutes-level freshness buys nothing and costs continuously. Tiering freshness against decisions is the cost-framing the panel is listening for.</p></details>
+      <details><summary>Hard follow-up: "What breaks first when the IoT vendor changes the payload?"</summary><p>Ingestion shouldn't - Bronze stays permissive and captures unexpected fields as rescued data instead of failing. Silver enforces the contract, quarantines non-conforming records, and alerts. The wrong design hard-codes the schema at ingestion and turns every vendor firmware update into an outage.</p></details>
+
+      <h2>Case 4 - Governed GenAI assistant over HR and legal data</h2>
+      <p><strong>Situation.</strong> An enterprise HR and legal function wants an assistant that answers both structured questions ("headcount by region, fully burdened cost") and policy questions ("parental leave in Texas vs Germany") - over data so sensitive that a single leaked salary to the wrong user kills the program. Security is the requirement; the chatbot is the feature.</p>
+      <p><strong>Discovery.</strong> Ask: Who is allowed to see what, today, in the source systems - and is that encoded anywhere machine-readable? What is the policy corpus and who owns its freshness? What does legal require for auditability of answers? Can data leave the tenant for model inference? What you learn: the entitlement model exists in PeopleSoft roles but has never been externalized; legal wants every answer traceable to a source; and "no external model calls" is a likely constraint to surface early, not discover in security review.</p>
+      <p><strong>Architecture.</strong> Three cooperating agents on the Data Intelligence Platform. Structured questions go to an AI/BI Genie space over governed Gold HR tables - SQL-grounded answers with the generated query shown, which is what builds trust with analysts. Policy questions go to a RAG assistant: documents chunked and indexed in Mosaic AI Vector Search, answers generated via model serving endpoints with citations mandatory. An intent router fronts both as a single assistant, hosted as a Databricks App with a custom UI. The security spine: Unity Catalog row filters and column masks enforce entitlements <em>at query execution in the user's identity</em> - the agent never queries through a privileged service account, so there is no prompt-injection path to data the user couldn't already see. MLflow 3 tracing plus audit logs cover every answer; as of mid-2026, Unity AI Gateway (Beta) is the emerging control plane for governing the LLM endpoints themselves - check current status before presenting it as GA.</p>
+<pre><code>PeopleSoft / SAP HR --&gt; Gold tables + UC row filters &amp; column masks
+Policy docs --&gt; chunk + embed --&gt; Mosaic AI Vector Search
+User --&gt; Databricks App --&gt; intent router
+        --&gt; Genie space (Text2SQL, query shown, runs AS USER)
+        --&gt; RAG agent (citations required)
+Audit: MLflow 3 tracing + UC audit logs; gateway controls on endpoints</code></pre>
+      <p><strong>Wave plan.</strong> Wave 1: entitlement model externalized into UC policies and proven with adversarial tests - before any AI. Wave 2: Genie space for structured Q&amp;A with a curated semantic layer and golden-question evaluation. Wave 3: RAG assistant, then the router. <strong>Risks:</strong> entitlement gaps (mitigate: red-team testing with real persona accounts as an explicit deliverable); hallucinated policy answers (mitigate: mandatory citations, refusal when retrieval confidence is low, human escalation path); stale policies (mitigate: owned refresh pipeline with document versioning). <strong>Metrics:</strong> zero entitlement violations in red-team and production audits, answer groundedness scores on the evaluation set, deflection of HR tickets, time-to-answer vs the old intranet search.</p>
+      <p><strong>Panel talk track.</strong> "I'll show you the security model first and the demo second - because if row-level security fails, nothing else matters." Then demo the Genie pattern of showing its SQL: trust through transparency.</p>
+
+      <div class="callout story">This generalizes what you shipped at ADM: three production GenAI agents over PeopleSoft and SAP labor data - a Headcount &amp; Salaries Genie agent, an Employee Policy RAG assistant on Vector Search with cited answers, and a multi-agent router - delivered as a Databricks App with a Streamlit UI and Unity Catalog row- and column-level permissions for HR users. When the panel asks "has anyone actually done this," your answer is yes, in production, and you can narrate the entitlement design from memory.</div>
+
+      <div class="callout interview"><p><strong>"How do you guarantee the assistant never shows a salary to someone unauthorized?"</strong> Strong answer outline: (1) enforcement lives in the data platform, not the prompt - UC row filters and column masks evaluated at query time in the requesting user's identity; (2) no privileged service account in the query path, so jailbreaking the prompt yields nothing the user couldn't query directly; (3) adversarial persona testing as a sign-off gate, not a hope; (4) full audit trail of question, generated SQL, and result via tracing and UC audit logs. The one-line version: "I don't trust the model with security - I make security a property of the data layer the model sits on."</p></div>
+
+      <h2>Building your case portfolio for the panel round</h2>
+      <p>Treat these four as a portfolio, not a script. A practical preparation routine: write each case onto a single page with the seven beats (situation, discovery, architecture, waves, risks, metrics, talk track); rehearse a ten-minute and a three-minute version of each - panels interrupt, so the three-minute spine is what survives; draw each diagram from memory on a whiteboard until it takes under ninety seconds; and for every case write the three objections you'd least like to hear, with answers, because the panel will find them anyway. Lead with the two lived cases (1 and 4) whenever you have a choice, use case 2 when the scenario smells like migration, and use case 3 to demonstrate that you scope honestly. Cross-check the technical depth behind each against <a href="de-delta.html">Delta</a>, <a href="de-streaming.html">streaming</a>, and <a href="de-unity-catalog.html">Unity Catalog</a> before the loop - the deep-dive round and the panel draw from the same well.</p>
+
+      <div class="callout tip">In the actual panel, say the discovery questions out loud even though you already know the scenario: "Before I present the design, here's what I confirmed with your team and what it changed." It signals method, and method is what separates an RSA from a senior engineer with slides.</div>
+    </article>
+
+    <div class="pagenav"><a href="rsa-consulting.html"><span class="label">Previous</span>Consulting Craft</a><a class="next" href="prep-track.html"><span class="label">Next</span>Interview Prep Track</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

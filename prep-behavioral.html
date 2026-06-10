@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STAR Story Bank · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="prep-track.html">Interview Prep Track</a> / STAR Story Bank</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge prep">Prep · Module 03</span>
+        <h1>STAR Story Bank</h1>
+        <p class="lede">Eight real stories structured for two-minute delivery, mapped to the questions that summon them.</p>
+      </header>
+
+      <h2>Delivery format: STAR with a point</h2>
+      <p>Every behavioral answer is the same two-minute machine. The most common failure mode is not a missing story — it is a story with the wrong time allocation: ninety seconds of background, twenty seconds of what you actually did. Invert that. The Action is the answer; everything else is framing.</p>
+
+      <table>
+        <thead>
+          <tr><th>Phase</th><th>Time</th><th>What it must contain</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Situation</strong></td><td>~20s</td><td>Company, your role, the stakes. One sentence of context the interviewer needs — nothing they don't.</td></tr>
+          <tr><td><strong>Task</strong></td><td>~10s</td><td>What <em>you</em> were on the hook for, stated as an outcome, not a job description.</td></tr>
+          <tr><td><strong>Action</strong></td><td>~60s</td><td>Three to five decisions you made, in order, with the reasoning for each. This is where Spark, Delta, Unity Catalog, and stakeholder moves live.</td></tr>
+          <tr><td><strong>Result</strong></td><td>~20s</td><td>A number, a shipped thing, or a changed behavior. Ideally all three.</td></tr>
+          <tr><td><strong>The point</strong></td><td>~10s</td><td>One sentence: what you learned or what you now do differently. This is what separates a report from an answer.</td></tr>
+        </tbody>
+      </table>
+
+      <p>Three rules that apply to every story below:</p>
+      <ul>
+        <li><strong>Say "I", not "we".</strong> Interviewers cannot hire a team. "We built the pipeline" tells them nothing about you; "I designed the metadata-driven framework and reviewed the team's PySpark against it" does. Use "we" only for outcomes you genuinely shared, then immediately name your slice.</li>
+        <li><strong>Quantify the Result.</strong> Source-system counts, dollar savings, downtime avoided, audiences served. If you have no number, name the artifact ("three production agents", "a runbook the team still uses").</li>
+        <li><strong>Land the point.</strong> A lesson stated out loud signals self-awareness — the thing failure and conflict questions are actually probing for.</li>
+      </ul>
+
+      <div class="callout tip">
+        <p>Rehearse each story out loud, timed, three times. Two minutes spoken is roughly 280 words. If your draft runs over, cut Situation first, then Result detail — never the Action. For Databricks field and professional-services loops, expect the project-delivery round to be a behavioral interview wearing a technical costume: the same stories work, but the follow-ups go deep into architecture, so know your own systems cold.</p>
+      </div>
+
+      <h2>Tailor to the values Databricks screens for</h2>
+      <p>As of mid-2026, Databricks describes its culture with principles along the lines of customer obsession, ownership, truth-seeking, and raising the bar — check the current careers page for exact wording before your loop, then echo their language back in your "point" sentences. Mapping your bank against them:</p>
+      <ul>
+        <li><strong>Customer obsession:</strong> Story 1 (CFO-level consumers), Story 4 (a public agency client on a clock), Story 2 (HR users who must trust an AI answer).</li>
+        <li><strong>Ownership:</strong> Story 1 (end-to-end R2R delivery), Story 5 (owning an upgrade nobody would notice unless it failed).</li>
+        <li><strong>Truth-seeking:</strong> Story 6 (data over preference in tool selection), Story 3 (and the discipline of verifying your own headline number).</li>
+        <li><strong>Raising the bar:</strong> Story 7 (review standards), Story 2 (shipping GenAI to production, not a demo).</li>
+      </ul>
+
+      <div class="callout story">
+        <p>Your career is unusually well-shaped for this value screen: you have a nine-year arc from lottery DW/ETL at Scientific Games to leading Finance R2R analytics at ADM, with a promotion from Senior Data Engineer to Data &amp; Analytics Technical Lead in March 2026. When asked "why should we believe you raise the bar," the promotion inside sixteen months at ADM is itself a Result — someone with budget authority already concluded it.</p>
+      </div>
+
+      <h2>The eight stories</h2>
+
+      <h3>Story 1 — ADM: leading Finance R2R delivery end to end</h3>
+      <p><strong>Answers:</strong> leadership, ambiguity, "your most significant project", "a time you coordinated multiple stakeholders".</p>
+      <ul>
+        <li><strong>S:</strong> ADM's Finance Record-to-Report analytics ran across disconnected systems — JDE, SAP, HFM (Hyperion), IBM DB2, IBM APGO Web Wire — with Executive Committee and CFO-level consumers depending on the numbers being consistent and traceable.</li>
+        <li><strong>T:</strong> I owned R2R analytics delivery end to end: architecture, build, governance, and the executive-facing output.</li>
+        <li><strong>A:</strong> I architected Bronze/Silver/Gold medallion pipelines on Azure Databricks and Azure Data Factory integrating all five sources into Delta Lake; put lineage and Unity Catalog governance in from day one so Audit could trace any figure to source; and ran orchestration across ADF, Databricks Workflows, and Redwood RunMyJobs so Power BI refresh was part of the pipeline contract, not an afterthought — and consolidated the KPI definitions behind the frameworks into shared, governed versions rather than one-off departmental reports.</li>
+        <li><strong>R:</strong> KPI frameworks for P&amp;L, Budget vs Actual, Expense Forecasting, EHS, and Capital Allocation now serve Executive Committee and CFO-level consumers; I was promoted to Data &amp; Analytics Technical Lead in March 2026.</li>
+        <li><strong>Point:</strong> Ambiguity across departments is resolved by governance and lineage, not by meetings — make the data defend itself.</li>
+      </ul>
+      <p><strong>Delivery tips:</strong> Resist listing all five source systems twice; once is credibility, twice is inventory. Spend the Action on how you got stakeholders onto shared, governed KPI definitions — recover those specifics from memory before the loop; that is the leadership signal.</p>
+      <p><strong>Likely follow-ups:</strong> How did you resolve a specific KPI definition conflict? Why medallion rather than a single curated layer? How does Unity Catalog lineage actually help an auditor?</p>
+
+      <h3>Story 2 — ADM: three production GenAI agents on sensitive HR data</h3>
+      <p><strong>Answers:</strong> innovation, security and data sensitivity, impact, "a time you shipped something new to production".</p>
+      <ul>
+        <li><strong>S:</strong> HR questions about headcount, salaries, and policy were answered by analysts pulling from PeopleSoft and SAP labor data — slow, and risky for data this sensitive.</li>
+        <li><strong>T:</strong> Ship GenAI assistants HR could actually use in production — meaning governed, auditable, and trustworthy, not a demo.</li>
+        <li><strong>A:</strong> I built three agents on Databricks: a Corporate Headcount &amp; Salaries Data Agent on a Genie Space that shows the generated SQL alongside the answer so users can verify it; an Employee Policy RAG Assistant on Databricks Vector Search and LLM endpoints that cites its sources; and a Combined Multi-Agent Assistant with intent routing between them. I hosted everything as a Databricks App with a custom Streamlit UI and embedded dashboards, and enforced Unity Catalog row- and column-level permissions so each HR user sees only what their role allows — the LLM never becomes a permissions bypass.</li>
+        <li><strong>R:</strong> All three shipped to production for HR users, with the trust mechanisms — visible SQL, cited answers, UC enforcement — designed in from the start rather than bolted on.</li>
+        <li><strong>Point:</strong> For GenAI on sensitive data, governance is the feature; the model is the commodity.</li>
+      </ul>
+      <p><strong>Delivery tips:</strong> Lead with "production" and "salaries" — both words make interviewers sit up. For a Sr. RSA ML &amp; GenAI loop this is your flagship story; rehearse a whiteboard version of the intent-routing architecture.</p>
+      <p><strong>Likely follow-ups:</strong> How do you evaluate answer quality? What happens when the router misclassifies intent? Why Genie Space instead of pure text-to-SQL against the warehouse? How do row filters interact with vector search results?</p>
+
+      <div class="callout interview">
+        <p><strong>"Tell me about a time you had to balance innovation against risk."</strong> Outline: Story 2. Situation — HR data is the most radioactive data in the company. Task — ship GenAI anyway. Action — three trust decisions: show the SQL, cite the sources, enforce UC row/column security underneath the model. Result — production, not pilot. Point — you de-risk innovation by making verification cheap for the user, not by slowing the project down.</p>
+      </div>
+
+      <h3>Story 3 — Maersk: semantic-layer lakehouse and the $10M figure</h3>
+      <p><strong>Answers:</strong> impact, cost optimization, "your proudest technical achievement".</p>
+      <ul>
+        <li><strong>S:</strong> Maersk's Fact-Based Reporting program pulled SAP S/4HANA, the AC-DOCA Universal Journal, and Hyperion HFM into an Azure lakehouse; the legacy estate included SSAS multidimensional cubes and heavy dedicated infrastructure.</li>
+        <li><strong>T:</strong> Modernize the reporting stack while cutting its run cost.</li>
+        <li><strong>A:</strong> I built metadata-driven ADF and PySpark ingestion to Delta on ADLS Gen2, published to a Synapse Dedicated SQL Pool, migrated SSAS multidimensional cubes to Azure Analysis Services Tabular, moved managed tables to external tables for governance and cost control, and delivered a Dremio plus Power BI semantic-layer lakehouse as the governed serving layer.</li>
+        <li><strong>R:</strong> $10M annual infrastructure cost reduction attributed to the semantic-layer lakehouse.</li>
+        <li><strong>Point:</strong> The cheapest infrastructure is the layer you decommission — a semantic layer over Delta means retiring serving systems instead of tuning them. (Only claim retirements you can name; see the warning below.)</li>
+      </ul>
+      <div class="callout warn">
+        <p>The $10M figure is on your resume flagged internally as "verify before external use." Before any interview, reconstruct the calculation: which systems were retired, which licenses and compute made up the number, over what period, and what share is fairly attributable to your work versus the program. A senior interviewer <em>will</em> ask "how was that measured?" — and a confident breakdown turns the question into your best moment, while a shrug turns your biggest number into your biggest liability. If you cannot reconstruct it, downgrade the claim out loud ("a program-level reduction my workstream contributed to") rather than defending a number you can't decompose.</p>
+      </div>
+      <p><strong>Delivery tips:</strong> Say "program-level figure, and here's the composition" before you are asked. Pair it with the smaller-but-fully-yours Ecolab number (~$20K/month Azure savings) to show a pattern, not a one-off.</p>
+      <p><strong>Likely follow-ups:</strong> Walk me through the calculation. Why Dremio over building the semantic layer in Power BI alone? Why move managed to external tables, and what did it cost you in convenience?</p>
+
+      <h3>Story 4 — Port Authority of NY &amp; NJ: two deliveries, one six-month contract</h3>
+      <p><strong>Answers:</strong> prioritization, delivery under constraint, "competing deadlines", "a time you managed scope".</p>
+      <ul>
+        <li><strong>S:</strong> A June–November 2024 contract at the Port Authority with two distinct mandates: the ICMS agency-wide financial lakehouse, and a separate PATH Ridership Analytics migration off legacy VBA and MS Access.</li>
+        <li><strong>T:</strong> Deliver both inside the contract window — no extension assumed.</li>
+        <li><strong>A:</strong> For ICMS I built metadata-driven ADF and PySpark ingestion to ADLS Gen2 Bronze from SAP ECC FI, IBM Planning Analytics, and Budget PRO, covering Plan, Budget, Forecast, and Actuals across Capital and Operating portfolios for Aviation, PATH, and TB&amp;T. The metadata-driven design was the prioritization decision: onboarding a new source became configuration, not code, so I could timebox ICMS work and parallelize the ridership track — replacing VBA/Access workloads with parameterized Azure Synapse pipelines and Power BI.</li>
+        <li><strong>R:</strong> Both workstreams delivered within the six-month engagement.</li>
+        <li><strong>Point:</strong> Under a fixed clock, the highest-leverage move is an architecture that converts repeated work into configuration — prioritization is a design problem before it is a calendar problem.</li>
+      </ul>
+      <p><strong>Delivery tips:</strong> This is your best consulting story for an RSA loop — short engagement, public-sector client, hard stop. Frame it as exactly what a Resident Solutions Architect does: land, build, hand over, leave.</p>
+      <p><strong>Likely follow-ups:</strong> What did you deliberately not do? How did you hand over to staff who would maintain it? What would you have cut first if you'd fallen behind?</p>
+
+      <h3>Story 5 — Ecolab: EBX 5.9 → 6.0.11 with zero downstream disruption</h3>
+      <p><strong>Answers:</strong> risk management, attention to detail, "a high-stakes change", "a time careful planning paid off".</p>
+      <ul>
+        <li><strong>S:</strong> At Ecolab's India GCC, the TIBCO EBX MDM platform — customized, and feeding downstream Customer Data Management consumers — needed a major version upgrade from 5.9 to 6.0.11.</li>
+        <li><strong>T:</strong> Execute the upgrade without breaking anything downstream; success meant nobody outside the team noticing it happened.</li>
+        <li><strong>A:</strong> I inventoried the customizations and downstream dependencies, validated them against the new version, and sequenced the upgrade so every consuming integration was verified before cutover.</li>
+        <li><strong>R:</strong> Zero downstream disruption. In the same period I drove roughly $20K/month in Azure cost savings on the broader CDM estate.</li>
+        <li><strong>Point:</strong> On a platform other systems depend on, the risk lives in the dependency map, not the upgrade itself — so I now start every risky change by enumerating consumers.</li>
+      </ul>
+      <p><strong>Delivery tips:</strong> "Zero downstream disruption" is the headline — say it in the Task as the success criterion <em>and</em> in the Result as the outcome. Keep this story short; its power is its cleanliness.</p>
+      <p><strong>Likely follow-ups:</strong> What was your rollback plan? How did you test customizations against the new version? What would "disruption" have looked like and how would you have detected it?</p>
+
+      <h3>Story 6 — ADM: fit-gap tool selection against stakeholder preferences</h3>
+      <p><strong>Answers:</strong> technical disagreement, influence without authority, conflict, "a time you changed someone's mind with data".</p>
+      <ul>
+        <li><strong>S:</strong> ADM needed a semantic-layer direction, with Power BI, Dremio, and Denodo in play — and stakeholders holding different starting positions.</li>
+        <li><strong>T:</strong> Produce the architecture recommendation, knowing a fit-gap result can contradict people senior to you.</li>
+        <li><strong>A:</strong> I ran a fit-gap evaluation: agreed the criteria with stakeholders <em>first</em> — workload shapes, batch versus near-real-time needs, CDC/SCD requirements, governance fit with Unity Catalog, licensing and run cost — then scored each option against criteria everyone had already signed. I presented the gaps per tool rather than a verdict, and let the scoring carry the argument.</li>
+        <li><strong>R:</strong> Recover the specific outcome from memory before the loop — which option the fit-gap favored, who started elsewhere, and how the co-authored criteria carried the conclusion. Do not improvise it; the mechanism is what makes the story land either way.</li>
+        <li><strong>Point:</strong> You win technical disagreements before the scoring starts: get agreement on how the decision will be made, and the decision makes itself.</li>
+      </ul>
+      <p><strong>Delivery tips:</strong> Never name a stakeholder as "wrong" — describe positions, not people. This story doubles as your conflict story <em>and</em> your truth-seeking story; vary the point sentence depending on which question summoned it.</p>
+      <p><strong>Likely follow-ups:</strong> What were the actual decisive criteria? What if a stakeholder had vetoed the result anyway? When has a fit-gap told you something you didn't want to hear?</p>
+
+      <div class="callout interview">
+        <p><strong>"Tell me about a time you disagreed with a senior stakeholder. What did you do?"</strong> Outline: Story 6. Do not open with the disagreement — open with the decision that had to be made. Action beats: (1) moved the argument from tools to criteria, (2) got the criteria signed before scoring, (3) presented gaps neutrally. Result: the real outcome you recovered from memory, told without naming a loser. Point: influence without authority is process design. Expected pushback: "what if they still said no?" — answer that you would disagree and commit, and say those words explicitly; interviewers listen for them.</p>
+      </div>
+
+      <h3>Story 7 — Mentoring junior engineers through reviews and standards</h3>
+      <p><strong>Answers:</strong> developing others, leadership without a title, "how do you raise team quality".</p>
+      <ul>
+        <li><strong>S:</strong> At ADM, junior engineers on the team produced PySpark of uneven quality — working code with hidden costs: unmanaged shuffles, no idempotency, inconsistent patterns.</li>
+        <li><strong>T:</strong> Raise the team's floor without becoming the bottleneck who rewrites everything.</li>
+        <li><strong>A:</strong> I run design reviews before code exists, so direction gets corrected when it is cheap; I do code reviews against written PySpark standards rather than personal taste, so feedback reads as "the standard says" not "I prefer"; and I review for the why — making engineers explain a join strategy or partitioning choice rather than just fixing it for them.</li>
+        <li><strong>R:</strong> Engineers I mentor ship to the same production pipelines I architect, against a shared standard, with less of my time per review over time.</li>
+        <li><strong>Point:</strong> Mentoring scales when the standard is written down — review against a document and you teach the document, not dependence on you.</li>
+      </ul>
+      <p><strong>Delivery tips:</strong> Have one concrete review anecdote ready (a specific anti-pattern you caught and how you coached it) — pull it from memory before the interview; the generic version of this story is the weakest in your bank without it. Also be honest about the standards artifact: if your PySpark best practices live in review habits and templates rather than a single written document, say so — or write the document before the loop, because the follow-up below assumes one exists.</p>
+      <p><strong>Likely follow-ups:</strong> Tell me about someone you grew — where are they now? How do you handle an engineer who rejects feedback? What's in your PySpark standards doc?</p>
+
+      <h3>Story 8 — Production incident / hypercare (TEMPLATE — fill before interviews)</h3>
+      <p>Your resume documents hypercare, monitoring, and runbooks via Azure DevOps across ADM orchestration (ADF + Databricks Workflows + RunMyJobs) — but no specific incident. You almost certainly have one. Recover it from memory <em>before</em> the loop and fill this skeleton. Do not improvise specifics in the room.</p>
+      <pre><code>S: During hypercare for [pipeline / release] at [ADM / client], [the incident:
+   what broke, e.g. failed load, late data, wrong numbers in an executive report].
+   Detected via [detection: monitoring alert / data quality check / user report]
+   — note honestly whether monitoring caught it or a human did.
+T: I was on the hook to [restore correct data / unblock the refresh] within
+   [the real constraint: reporting deadline, SLA, close calendar].
+A: 1) Triaged: [how you scoped blast radius — which tables, which consumers].
+   2) Diagnosed: [root cause — config, data, code, upstream system].
+   3) Fixed: [the fix, and how you validated it before declaring victory].
+   4) Communicated: [who you told, when, and what you committed to].
+R: [time to resolution; consumers affected or protected; what the runbook
+   gained]. Prevention: [the monitoring check, validation step, or runbook
+   entry added so this class of failure is caught earlier next time].
+Point: [your honest lesson — usually about detection or communication].</code></pre>
+      <p><strong>Answers (once filled):</strong> failure, pressure, ownership, "a time something broke in production", "a mistake you made" (if the root cause was yours — owning it cleanly is a stronger answer than a deflected one).</p>
+      <p><strong>Delivery tips:</strong> Interviewers grade incident stories on detection honesty, communication during the outage, and prevention afterward — more than on the cleverness of the fix.</p>
+
+      <div class="callout warn">
+        <p>Never fabricate an incident, a metric, or a root cause. Experienced interviewers probe incident stories three follow-ups deep ("what exactly did the alert say?"), and invented details collapse under exactly that pressure. An honest "the data quality check missed it; a user caught it, and that's why I added the check" outscores a fictional heroic save every time.</p>
+      </div>
+
+      <div class="callout story">
+        <p>When a question doesn't match any prepared story, fall back on the shape of your career rather than freezing: six employers, industries from lottery gaming and payments to chemicals, shipping, the public sector, and agribusiness, one repeated playbook — metadata-driven ingestion, medallion on Delta, governed serving, measured cost. You used that exact pattern at Maersk, PANYNJ, and ADM; "let me give you the pattern and one instance of it" is a legitimate, strong answer structure.</p>
+      </div>
+
+      <h2>Question → story lookup</h2>
+      <p>Drill this mapping until retrieval is instant. In the room you get about three seconds to pick a story; choosing well matters more than telling perfectly.</p>
+
+      <table>
+        <thead>
+          <tr><th>Question</th><th>Story</th><th>Angle to emphasize</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Tell me about your most significant project.</td><td>1</td><td>End-to-end ownership; five source systems, CFO-level output.</td></tr>
+          <tr><td>Tell me about a time you led a team or initiative.</td><td>1</td><td>Cross-functional definition-setting; promotion as external validation.</td></tr>
+          <tr><td>Describe a time you dealt with ambiguity.</td><td>1</td><td>Disconnected sources, shared KPIs; lineage and governance as the resolution mechanism.</td></tr>
+          <tr><td>Tell me about something innovative you built.</td><td>2</td><td>Production GenAI, not a demo; trust mechanisms as the innovation.</td></tr>
+          <tr><td>How have you handled sensitive data?</td><td>2</td><td>UC row/column security under the LLM; salaries data in production.</td></tr>
+          <tr><td>What's your biggest measurable impact?</td><td>3</td><td>$10M program figure — with the composition ready, caveat stated first.</td></tr>
+          <tr><td>Tell me about a time you reduced cost.</td><td>3 (alt: 5)</td><td>Decommissioning over tuning; Ecolab ~$20K/month as the fully-yours backup.</td></tr>
+          <tr><td>Describe competing priorities or a tight deadline.</td><td>4</td><td>Two mandates, six months, fixed end date; design as prioritization.</td></tr>
+          <tr><td>Tell me about delivering for a difficult or constrained client.</td><td>4</td><td>Public-sector contract; hand over and leave — the RSA motion.</td></tr>
+          <tr><td>Describe a high-risk change you managed.</td><td>5</td><td>Dependency mapping first; success defined as nobody noticing.</td></tr>
+          <tr><td>Tell me about a disagreement with a stakeholder or engineer.</td><td>6</td><td>Criteria before scoring; positions, not people.</td></tr>
+          <tr><td>How do you influence without authority?</td><td>6</td><td>Co-authored criteria make stakeholders own the conclusion.</td></tr>
+          <tr><td>Tell me about developing or mentoring someone.</td><td>7</td><td>Written standards; review the why; one concrete anecdote.</td></tr>
+          <tr><td>Tell me about a failure or production issue.</td><td>8</td><td>Fill the template first. Detection honesty, communication, prevention.</td></tr>
+          <tr><td>Tell me about a mistake you made.</td><td>8</td><td>Only if the root cause was genuinely yours; own it without hedging.</td></tr>
+          <tr><td>Why Databricks? / Tell me about yourself.</td><td>—</td><td>Not STAR questions — use your positioning arc from the <a href="prep-track.html">Interview Prep Track</a> hub, then bridge into Story 1 or 2.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">
+        <p>Final pass before any loop: re-verify the $10M composition, fill the Story 8 template from memory, and pick a concrete mentoring anecdote for Story 7. Those are the three open items in this bank — everything else is rehearsal.</p>
+      </div>
+    </article>
+
+    <div class="pagenav"><a href="prep-system-design.html"><span class="label">Previous</span>Data Platform System Design</a><a class="next" href="prep-study-plan.html"><span class="label">Next</span>8-Week Study Plan</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

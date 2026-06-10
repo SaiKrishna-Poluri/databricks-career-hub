@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consulting Craft · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="rsa-track.html">Resident Solutions Architect Track</a> / Consulting Craft</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge rsa">RSA Track · Module 05</span>
+        <h1>Consulting Craft</h1>
+        <p class="lede">Discovery, whiteboarding, objection handling, and the trusted-advisor behaviors panels actually score.</p>
+      </header>
+
+      <h2>Why this module decides the offer</h2>
+      <p>The RSA is a <strong>billable Professional Services consultant</strong>, not a presales demo-er. As of mid-2026, the panel presentation — a customer simulation where interviewers roleplay stakeholders and push back deliberately — is consistently reported as the hardest and most decisive round. Spark internals get you into the loop; consulting craft gets you the offer. Everything on this page is scoreable behavior: do you discover before you solution, do you handle pushback without getting defensive, and would a customer trust you with their delivery.</p>
+
+      <h2>The engagement lifecycle — where you lead, where you support</h2>
+      <p>RSAs are embedded for short-to-medium engagements: reference architectures, migrations, productionizing data and AI use cases. You share the engagement with an Engagement Manager (EM), the account's presales SA, and sometimes a Delivery SA. Know the lanes.</p>
+      <table>
+        <thead>
+          <tr><th>Phase</th><th>Goal</th><th>RSA leads</th><th>RSA supports</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Pre-sales handoff</td><td>Inherit context without inheriting assumptions</td><td>Validating the technical claims made in the sale</td><td>SA owns the relationship transfer</td></tr>
+          <tr><td>SOW &amp; scope</td><td>Deliverables, assumptions, exclusions in writing</td><td>Technical estimates and feasibility</td><td>EM owns commercials and terms</td></tr>
+          <tr><td>Kickoff</td><td>Shared definition of done, named owners</td><td>Technical agenda, architecture walkthrough plan</td><td>EM runs logistics and governance cadence</td></tr>
+          <tr><td>Discovery</td><td>Understand the real problem and constraints</td><td>Everything — this is your craft</td><td>—</td></tr>
+          <tr><td>Design</td><td>Agreed architecture and decision log</td><td>Architecture, trade-off narration, security review</td><td>EM tracks scope impact of decisions</td></tr>
+          <tr><td>Build</td><td>Working, tested, governed pipelines and apps</td><td>Hands-on delivery, code review, standards</td><td>Customer engineers build alongside you</td></tr>
+          <tr><td>Enablement</td><td>Customer can run it without you</td><td>Runbooks, pairing, workshops</td><td>EM schedules and confirms attendance</td></tr>
+          <tr><td>Handoff / closeout</td><td>Clean exit, measured outcomes, expansion signal</td><td>Technical handoff package, hypercare plan</td><td>EM owns closeout report and references</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Discovery as a craft: a question bank by persona</h2>
+      <p>Bad consultants demo; good consultants interview. Run discovery persona by persona — each stakeholder fears something different, and your architecture must answer all four. Use these verbatim if needed.</p>
+
+      <h3>Executive sponsor — outcomes, timeline, success metrics</h3>
+      <ul>
+        <li>What business outcome does this need to produce, and by when? What happens if it slips a quarter?</li>
+        <li>How will you personally judge success at 6 and 12 months — what number changes?</li>
+        <li>Who else has to believe in this for it to survive the next budget review?</li>
+        <li>What was tried before, and why didn't it stick?</li>
+        <li>If we could only ship one use case in phase 1, which one buys you credibility internally?</li>
+      </ul>
+
+      <h3>Platform owner — security, cost, operations</h3>
+      <ul>
+        <li>Who approves network and identity changes, and what is their lead time? (This question alone has saved more schedules than any architecture choice.)</li>
+        <li>What are your non-negotiables: regions, private networking, encryption, data residency, audit regimes?</li>
+        <li>How do you see and allocate cost today? What thresholds trigger alarms or finance escalation?</li>
+        <li>Who carries the pager after handoff, and what monitoring stack do they already live in?</li>
+        <li>What does your change-management process require before anything touches production?</li>
+      </ul>
+
+      <h3>Data team lead — skills, tooling, migration fears</h3>
+      <ul>
+        <li>What is the team's strongest skill today — SQL, Python, an ETL tool — and what is the gap to where we're heading?</li>
+        <li>Which jobs are most fragile or least understood — where does tribal knowledge live?</li>
+        <li>What in the current estate must not break during migration, even for a day?</li>
+        <li>How do you do code review, CI/CD, and environment promotion today?</li>
+        <li>What worries you most about adopting Spark and Databricks? (Ask it straight; the answer shapes your enablement plan.)</li>
+      </ul>
+
+      <h3>Analyst — consumption pain</h3>
+      <ul>
+        <li>Walk me through how you produced the last number you put in front of leadership — every step.</li>
+        <li>Where do you wait: data freshness, access requests, or query speed?</li>
+        <li>What do you rebuild in Excel because the official model can't answer it?</li>
+        <li>Which numbers do people argue about in meetings, and why do two teams get different answers?</li>
+      </ul>
+
+      <div class="callout story">
+        <p>You have run this exact multi-persona discovery inside ADM. Delivering Finance Record-to-Report analytics end to end meant aligning finance stakeholders and IT — each with different definitions of "correct" and different fears. The executive layer (Executive Committee and CFO-level consumers of the P&amp;L, Budget vs Actual, and Expense Forecasting KPIs) cared about trust in the number; IT cared about Unity Catalog governance and operability; the data teams cared about lineage from JDE, SAP, HFM, and DB2 sources. In the interview, tell it as discovery: you didn't get alignment by presenting — you got it by interviewing each function, writing down their conflicting definitions, and making the conflicts explicit before designing the Gold layer.</p>
+      </div>
+
+      <h2>From discovery to decisions: the decision log</h2>
+      <p>Discovery output is not a notebook of quotes — it is a set of <strong>architecture decisions traceable to stakeholder constraints</strong>. Keep a living decision log from day one. It de-personalizes disagreement ("we're revisiting DEC-007, not relitigating your opinion"), it is your defense when scope creeps, and it is the artifact panels love hearing about.</p>
+      <pre><code>DEC-007 | Status: ACCEPTED | Owner: RSA (proposed), platform owner (approved)
+Decision:   Hourly batch ingestion for GL actuals, not CDC streaming
+Context:    Sponsor outcome = month-end close visibility (discovery,
+            exec sponsor). Source exports hourly. No intraday consumer
+            named by any persona.
+Options:    (a) hourly batch via Workflows  (b) CDC streaming
+Trade-off:  (b) adds ops burden + cost for latency nobody asked for
+Revisit if: treasury intraday cash use case gets funded (parking lot)</code></pre>
+      <div class="callout tip">
+        <p>Every decision entry should cite which discovery answer drove it. If you can't trace a decision to a stakeholder constraint, you made it for your own comfort — flag it and confirm it. This habit is also your answer to the panel question "how do you handle disagreement on architecture?": you don't argue, you log options, trade-offs, an owner, and a revisit trigger.</p>
+      </div>
+
+      <h2>Whiteboarding technique</h2>
+      <p>The whiteboard (or shared screen) is a conversation tool, not a presentation. The technique panels score:</p>
+      <ol>
+        <li><strong>Start with boxes and arrows of the planes.</strong> Control plane, compute plane, storage in the customer's cloud account, Unity Catalog across workspaces. Orient everyone before any detail.</li>
+        <li><strong>Narrate trade-offs out loud as you draw.</strong> "I'm putting batch here instead of streaming — here's what that costs us and what it buys us." You are showing your decision process, which is what they are actually evaluating.</li>
+        <li><strong>Invite challenge explicitly.</strong> "Where does this break for your environment?" A board nobody pushes back on is a board nobody believes.</li>
+        <li><strong>Timebox.</strong> Five minutes for the skeleton, then drill only where the audience pulls you. If you draw for twenty minutes uninterrupted, you have lost the room.</li>
+        <li><strong>Leave a parking lot corner.</strong> Capture out-of-scope ideas visibly so people feel heard without derailing the session.</li>
+      </ol>
+
+      <h2>Estimation and scoping basics</h2>
+      <p>You will scope PS work with the EM. T-shirt sizing is the lingua franca: <strong>S</strong> (one source, known patterns, ~1–2 weeks), <strong>M</strong> (a few sources, one novel integration, ~4–6 weeks), <strong>L</strong> (multi-source platform build with governance and enablement, a quarter), <strong>XL</strong> (migration programs — split them, never quote them whole). Phase everything: phase 1 should produce a visible win for the executive sponsor in weeks, not a foundation nobody can see.</p>
+      <p>What blows up estimates — name these as explicit SOW assumptions:</p>
+      <ul>
+        <li><strong>Source access lead time.</strong> Firewall rules, service accounts, security reviews. Weeks, routinely.</li>
+        <li><strong>Data quality unknowns.</strong> "Clean" source data never is; budget a profiling spike before committing transform estimates.</li>
+        <li><strong>Undefined acceptance criteria.</strong> If "done" isn't written down, the project ends when the customer feels like it.</li>
+        <li><strong>Customer availability.</strong> Their SMEs have day jobs; your plan dies waiting for the one person who understands the legacy job.</li>
+        <li><strong>"Just one more source."</strong> The classic. Handled by change control, below.</li>
+      </ul>
+
+      <h2>Objection handling playbook</h2>
+      <p>The pattern is always the same: <strong>empathize, reframe, evidence, next step</strong>. Never argue the objection head-on, never bash the competitor, and always end with a concrete, low-commitment action.</p>
+      <table>
+        <thead>
+          <tr><th>Objection</th><th>Empathize</th><th>Reframe</th><th>Evidence</th><th>Next step</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>"It's too expensive"</td>
+            <td>"Scrutiny on platform spend is exactly right."</td>
+            <td>Compare total cost — infra plus people plus opportunity cost — and cost per workload, not the sticker.</td>
+            <td>FinOps levers: autoscaling, right-sizing, serverless, Photon price-performance, tagged cost attribution.</td>
+            <td>Two-week cost baseline of current estate, then a unit-economics comparison on one real workload.</td>
+          </tr>
+          <tr>
+            <td>"Snowflake already does this"</td>
+            <td>"It's a strong warehouse and your team knows it."</td>
+            <td>Scope, not speed: one governed platform for SQL, streaming, ML, and GenAI on open formats — no second platform when AI use cases land.</td>
+            <td>Unity Catalog spanning tables, files, models; Delta/Iceberg openness; their own roadmap likely includes ML they'd bolt on elsewhere.</td>
+            <td>Workload-level bake-off on one of their workloads with success criteria agreed in advance.</td>
+          </tr>
+          <tr>
+            <td>"Security won't approve it"</td>
+            <td>"Good — security blocking surprises is doing its job."</td>
+            <td>Security is a week-1 stakeholder, not a final gate. Approval failures are sequencing failures.</td>
+            <td>Private networking patterns, customer-managed keys, SCIM, audit logs, UC row/column controls, compliance attestations.</td>
+            <td>Architecture review session with their security team against a written reference architecture.</td>
+          </tr>
+          <tr>
+            <td>"Our team doesn't know Spark"</td>
+            <td>"That's a real risk and it's smart to raise it now."</td>
+            <td>Day-to-day work is SQL and PySpark DataFrames, not JVM internals — and enablement is a scoped deliverable, not a hope.</td>
+            <td>Pairing model during build, Databricks Academy paths, runbooks; SQL-first surfaces like Databricks SQL.</td>
+            <td>Skills assessment, then pair-build the first production pipeline with their engineers driving.</td>
+          </tr>
+          <tr>
+            <td>"We tried Hadoop and it failed"</td>
+            <td>"That scar tissue is data — let's use it."</td>
+            <td>List why Hadoop failed there — cluster admin burden, no managed platform, ops overhead — and map each cause to what a managed lakehouse removes.</td>
+            <td>Managed runtime, serverless options, no HDFS operations, governance built in rather than bolted on.</td>
+            <td>Joint post-mortem of the Hadoop program; turn its failure modes into this project's acceptance criteria.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout warn">
+        <p>The fatal panel mistake is treating an objection as a technical argument to win. Panels score whether you stay curious under pressure. If the "CFO" says it's too expensive and your first move is defending DBU pricing, you failed — the right first move is a question: "expensive compared to what baseline?" Half the time the objection dissolves when the comparison is made explicit; the other half, you now know what evidence actually matters.</p>
+      </div>
+
+      <div class="callout story">
+        <p>Your fit-gap and tool-selection work at ADM is objection handling in production form. When you recommend batch vs near-real-time, CDC/SCD design choices, or Power BI vs Dremio/Denodo for the semantic layer, you are doing exactly the empathize-reframe-evidence-next-step loop: acknowledging what the incumbent tool does well, reframing to the actual requirement, and backing the recommendation with evidence rather than preference. Tell one of these as a story where you recommended <em>against</em> the shinier option — that is trusted-advisor evidence.</p>
+      </div>
+
+      <h2>Scope creep and saying no gracefully</h2>
+      <p>Scope creep is never one big request — it is fifteen small reasonable ones. The defense is a formula, applied kindly and every time:</p>
+      <ol>
+        <li><strong>Acknowledge the value.</strong> "That's a genuinely useful addition."</li>
+        <li><strong>State the impact.</strong> "It adds roughly two weeks and pushes the Gold milestone past month-end close."</li>
+        <li><strong>Offer options.</strong> Trade it for something in scope, phase it to the next engagement, or park it in the decision log with a revisit trigger.</li>
+        <li><strong>Get the decision in writing.</strong> Change control through the EM — not because you don't trust people, but because memories diverge.</li>
+      </ol>
+      <p>Notice you never actually say the word "no." You say "yes, and here is what it costs," then let the sponsor choose. The sponsor owning the trade-off is the difference between a contractor and an advisor.</p>
+
+      <h2>Status communication and risk surfacing</h2>
+      <p>RAG status only works if it is honest. The industry disease is the <strong>watermelon project</strong> — green outside, red inside — and the cure is a rule: <strong>no surprise escalations</strong>. Any risk that could turn the project amber must appear in a status report before it appears in an escalation. Going amber early is credibility; going red suddenly is malpractice.</p>
+      <pre><code>WEEK 6 STATUS — AMBER
+Done:       Silver conformance for 3 of 5 sources; UC catalog live
+At risk:    SAP extract access — security review pending 9 days
+Decision needed (by Fri): approve service-principal scope, OR
+            accept a 2-week slip to the Gold P&amp;L milestone
+Next week:  Gold model build starts; enablement session #2</code></pre>
+      <div class="callout tip">
+        <p>Every amber or red must ship with a <strong>decision request and a date</strong>, never just a complaint. "We are amber because X; we need decision Y by Friday or the impact is Z." Status reports that only describe problems train executives to ignore them; status reports that demand small timely decisions train executives to unblock you.</p>
+      </div>
+
+      <h2>Enablement is a deliverable, not a vibe</h2>
+      <p>An engagement where the customer can't run the platform after you leave is a failed engagement that happened to ship code. Enablement gets line items in the SOW:</p>
+      <ul>
+        <li><strong>Runbooks</strong> — failure modes, restart procedures, escalation paths, written for the 2 a.m. on-call reader, not for you.</li>
+        <li><strong>Docs and the decision log</strong> — handed over as living artifacts, in their repo, not in your email.</li>
+        <li><strong>Pairing during build</strong> — their engineers drive the keyboard on the second pipeline; you navigate.</li>
+        <li><strong>Workshops</strong> — persona-specific: platform operations for IT, PySpark patterns for engineers, SQL/dashboards for analysts.</li>
+        <li><strong>Hypercare</strong> — a defined window with defined response expectations, then a deliberate, dated exit.</li>
+      </ul>
+
+      <div class="callout story">
+        <p>This is the part of RSA work you already do without the title. At ADM you run CI/CD, monitoring, runbooks, and hypercare through Azure DevOps as standing discipline — operability as a deliverable, not an afterthought. And your mentoring of junior engineers — design reviews, code reviews, PySpark best practices — is enablement evidence in the purest form: you make other engineers able to run what you built. The Ecolab EBX 5.9 to 6.0.11 upgrade with zero downstream disruption is the same muscle: transition managed so well the consumers never felt it. Frame all three as "I treat enablement and handoff as first-class deliverables," with specifics.</p>
+      </div>
+
+      <h2>Measuring success</h2>
+      <p>Close the loop with numbers the sponsor recognizes from discovery:</p>
+      <ul>
+        <li><strong>Adoption</strong> — active users by persona, queries and dashboard consumption trending up after handoff, customer-authored pipelines appearing in the repo.</li>
+        <li><strong>Time-to-value</strong> — days from kickoff to the first production use case an executive actually used.</li>
+        <li><strong>Cost-to-serve</strong> — cost per workload or per report, trending down as FinOps practices take hold; tagged attribution so finance can see it.</li>
+        <li><strong>Self-sufficiency</strong> — escalations during hypercare trending to zero; the customer deploys a change without you.</li>
+      </ul>
+
+      <h2>How panels test consulting craft</h2>
+      <p>Three formats recur in RSA loops as of mid-2026: a <strong>role-play scenario</strong> (often given in advance — you present, the panel plays customer stakeholders and pushes back on cost and complexity), a <strong>behavioral interview</strong> ("tell me about a difficult stakeholder"), and <strong>presentation Q&amp;A pushback</strong> where an interviewer interrupts and challenges mid-slide. The scoring is the same in all three: discovery before solutioning, composure under pressure, business framing, honesty about trade-offs.</p>
+
+      <div class="callout interview">
+        <p><strong>Role-play: "I'm the CFO. Your platform proposal looks expensive and my team says Snowflake already does this. Why should I approve it?"</strong></p>
+        <p>Outline: (1) Do not defend — discover. "Expensive against what baseline — current infra spend, the Snowflake quote, or total cost including the team's time?" (2) Acknowledge Snowflake's strength for the warehouse workloads they run today. (3) Reframe to the CFO's own outcomes from discovery: if the roadmap includes forecasting, ML, or GenAI, a warehouse-only choice means buying a second platform later — quantify that. (4) Offer a phased, low-risk commitment: one workload, agreed success criteria, measured unit economics, decision gate before any larger spend. (5) Close on their metric: "you told me month-end close visibility is the outcome — here is the date phase 1 delivers it." Composure and questions score higher than any feature list.</p>
+      </div>
+
+      <div class="callout interview">
+        <p><strong>"Tell me about a difficult stakeholder and how you handled it."</strong></p>
+        <p>Outline (STAR with a relationship arc, not a complaint): Situation — ADM Finance R2R delivery required aligning finance stakeholders and IT, with conflicting definitions of correct numbers and different risk appetites. Task — get one governed Gold layer all of them would sign off on. Action — persona-by-persona discovery instead of group debates; wrote conflicting definitions down and made the conflict explicit; used a decision log so disagreements attached to options and trade-offs, not people; gave the most skeptical function early visibility instead of a final reveal. Result — CFO-level and Executive Committee consumers using the KPI frameworks (P&amp;L, Budget vs Actual, Expense Forecasting) as the trusted source. Land the lesson: "difficult stakeholders are usually un-discovered stakeholders."</p>
+      </div>
+
+      <div class="callout interview">
+        <p><strong>Mid-presentation interrupt: "This is over-engineered. We don't need half of this."</strong></p>
+        <p>Outline: thank them, genuinely — pushback is engagement. Ask which half: "which components feel like overhead for your team?" Then triage out loud: components that exist because of <em>their</em> stated constraint ("the private networking is here because your security team requires it — happy to confirm with them"), components that are honest defaults you can defer ("we can phase the streaming path out of phase 1"), and components you will concede ("fair — that's gold-plating, I'll cut it"). Conceding one item visibly is the strongest credibility move available in a panel; refusing to concede anything reads as ego, not rigor.</p>
+      </div>
+
+      <div class="callout warn">
+        <p>In the panel presentation, do not open with your architecture slide. Candidates who jump straight to solutioning — even brilliant solutioning — score worse than candidates who spend the first minutes confirming the scenario's goals, constraints, and success metrics with the "stakeholders" in the room. The scenario is written with ambiguities on purpose; the discovery questions you ask <em>are</em> the test. Practice the mechanics too: screen-share, slide flow, and a whiteboard fallback, rehearsed out loud at least twice.</p>
+      </div>
+
+      <h2>Self-check before moving on</h2>
+      <ul>
+        <li>Can you run a 10-minute discovery from memory across all four personas without notes?</li>
+        <li>Can you deliver the empathize-reframe-evidence-next-step loop for all five objections above, conversationally?</li>
+        <li>Do you have one scope-creep story, one honest-amber story, and one enablement story rehearsed from your own delivery record?</li>
+        <li>Can you whiteboard the lakehouse planes in five minutes while narrating trade-offs, then stop talking?</li>
+      </ul>
+      <p>Next, put all of it to work against full scenarios in <a href="rsa-case-studies.html">Worked Case Studies</a>.</p>
+    </article>
+
+    <div class="pagenav"><a href="rsa-genai.html"><span class="label">Previous</span>GenAI on Databricks</a><a class="next" href="rsa-case-studies.html"><span class="label">Next</span>Worked Case Studies</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

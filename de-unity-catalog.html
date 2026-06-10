@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unity Catalog &amp; Governance · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="de-track.html">Data Engineer Track</a> / Unity Catalog &amp; Governance</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge de">DE Track · Module 05</span>
+        <h1>Unity Catalog &amp; Governance</h1>
+        <p class="lede">The governance layer every Databricks conversation eventually reaches - and one Saikrishna works with daily in ADM's production finance and HR estates.</p>
+      </header>
+
+      <h2>Why Unity Catalog exists</h2>
+      <p>Before Unity Catalog (UC), every Databricks workspace shipped with its own Hive metastore. That meant governance was fractured exactly along workspace boundaries: a table defined in the dev workspace did not exist in prod, permissions were managed per workspace with legacy table ACLs (or worse, with raw cloud storage IAM), there was no built-in lineage, and audit logs told you what clusters did, not who touched which column. Multiply that by five workspaces and three environments and you get the classic enterprise mess: nobody can answer "who can read salary data, and who actually did last Tuesday?"</p>
+      <p>UC fixes this by centralizing governance at the <strong>account level</strong>. One metastore per cloud region governs every workspace attached to it. Identities come from the account (synced from Entra ID / your IdP via SCIM), privileges are ANSI-style GRANTs stored once and enforced everywhere, and every access is logged and lineage-tracked automatically. On the Data Intelligence Platform, UC is no longer optional plumbing - it is the substrate for tables, files, models, functions, dashboards, Genie spaces, and serving endpoints alike.</p>
+
+      <h2>The object model and the three-level namespace</h2>
+      <p>UC organizes everything in a strict hierarchy. Get this picture solid - interviewers probe it casually ("where does a volume live?") to see if you have actually worked with it:</p>
+      <pre><code>Metastore (one per region, account-level)
+ └── Catalog                e.g. fin_prod
+      └── Schema (database) e.g. r2r_gold
+           ├── Tables       managed or external (Delta, and now managed Iceberg)
+           ├── Views        standard + materialized; dynamic views for filtering
+           ├── Volumes      governed file storage (managed or external)
+           ├── Functions    SQL/Python UDFs - also usable as AI agent tools
+           └── Models       MLflow registered models live here too</code></pre>
+      <p>Every securable is addressed with the <strong>three-level namespace</strong>: <code>catalog.schema.object</code>. So <code>fin_prod.r2r_gold.pl_actuals</code>, not the two-level <code>database.table</code> of the Hive world. The legacy metastore still appears as a catalog literally named <code>hive_metastore</code>, which is the bridge you walk across during migration.</p>
+      <p>Sitting beside the data hierarchy are the objects that connect UC to cloud storage:</p>
+      <ul>
+        <li><strong>Storage credential</strong> - wraps a cloud identity (on Azure, a managed identity via the Databricks access connector) that UC uses to reach ADLS/S3/GCS. Users never hold the storage keys.</li>
+        <li><strong>External location</strong> - a storage path plus a storage credential, itself a securable. Granting <code>CREATE EXTERNAL TABLE</code> on an external location is how you delegate "you may create tables under this container path" without handing out the credential.</li>
+        <li><strong>Connections</strong> - power Lakehouse Federation, so you can register and query external systems (SQL Server, Snowflake, PostgreSQL, etc.) as foreign catalogs under UC governance.</li>
+      </ul>
+      <p>Catalogs are your coarsest isolation tool. A common enterprise pattern is catalog-per-environment-per-domain (<code>fin_dev</code>, <code>fin_qa</code>, <code>fin_prod</code>), with catalog-workspace bindings so the prod catalog is only even visible from the prod workspace - a natural fit for a finance domain like the R2R analytics estate Saikrishna leads.</p>
+
+      <h2>The privilege model: GRANT, ownership, inheritance</h2>
+      <p>UC privileges are ANSI-SQL style: <code>GRANT</code> / <code>REVOKE</code> on a securable, to a principal (user, group, or service principal - always prefer groups). Three rules carry most of the weight:</p>
+      <ol>
+        <li><strong>Inheritance flows downward.</strong> A grant on a catalog applies to every schema and object inside it; a grant on a schema covers its tables, views, volumes, and functions. Grant broad-read at the catalog level, restrict by exception below.</li>
+        <li><strong>Access requires the full chain.</strong> To query a table you need <code>SELECT</code> on the table <em>and</em> <code>USE SCHEMA</code> on its schema <em>and</em> <code>USE CATALOG</code> on its catalog. Forgetting <code>USE CATALOG</code> is the number-one "why can't this group see anything?" ticket.</li>
+        <li><strong>Owners are special.</strong> Every object has an owner (ideally a group, not a person) who can do anything to it, including granting. <code>ALL PRIVILEGES</code> exists but explicit grants read better in an audit.</li>
+      </ol>
+      <table>
+        <thead>
+          <tr><th>Privilege</th><th>Applies to</th><th>What it allows</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>USE CATALOG</code> / <code>USE SCHEMA</code></td><td>Catalog / schema</td><td>Traverse the namespace; prerequisite for everything below</td></tr>
+          <tr><td><code>SELECT</code></td><td>Table, view</td><td>Read rows</td></tr>
+          <tr><td><code>MODIFY</code></td><td>Table</td><td>INSERT, UPDATE, DELETE, MERGE</td></tr>
+          <tr><td><code>CREATE TABLE</code> / <code>CREATE SCHEMA</code></td><td>Schema / catalog</td><td>Create child objects</td></tr>
+          <tr><td><code>READ VOLUME</code> / <code>WRITE VOLUME</code></td><td>Volume</td><td>Read or write files through the volume path</td></tr>
+          <tr><td><code>EXECUTE</code></td><td>Function, model</td><td>Invoke a UDF or registered model</td></tr>
+          <tr><td><code>CREATE EXTERNAL TABLE</code></td><td>External location</td><td>Create external tables under that path</td></tr>
+          <tr><td><code>BROWSE</code></td><td>Catalog and below</td><td>See metadata in Catalog Explorer without reading data</td></tr>
+          <tr><td><code>ALL PRIVILEGES</code></td><td>Any securable</td><td>Everything; use sparingly</td></tr>
+        </tbody>
+      </table>
+      <pre><code>GRANT USE CATALOG ON CATALOG fin_prod TO `grp-finance-analysts`;
+GRANT USE SCHEMA, SELECT ON SCHEMA fin_prod.r2r_gold TO `grp-finance-analysts`;
+REVOKE SELECT ON TABLE fin_prod.r2r_gold.pl_actuals FROM `grp-contractors`;
+SHOW GRANTS ON SCHEMA fin_prod.r2r_gold;</code></pre>
+
+      <h2>Managed vs external - tables and volumes</h2>
+      <p>Same Delta files either way; the difference is who controls the storage location and lifecycle.</p>
+      <table>
+        <thead>
+          <tr><th></th><th>Managed</th><th>External</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Storage path</strong></td><td>UC-controlled location (metastore, catalog, or schema level); you never reference the path</td><td>A path you register under an external location</td></tr>
+          <tr><td><strong>DROP TABLE</strong></td><td>Deletes metadata <em>and</em> data (after a grace window)</td><td>Deletes metadata only; files stay in storage</td></tr>
+          <tr><td><strong>Optimizations</strong></td><td>Full predictive optimization: auto OPTIMIZE / VACUUM / ANALYZE (default for accounts created on/after Nov 11, 2024)</td><td>You own maintenance jobs yourself</td></tr>
+          <tr><td><strong>Formats</strong></td><td>Delta, plus managed Apache Iceberg tables (GA, read/write via UC's Iceberg REST Catalog)</td><td>Delta, Parquet, CSV, JSON, etc.</td></tr>
+          <tr><td><strong>When to choose</strong></td><td>Default for everything new - Databricks' clear recommendation</td><td>Data shared with non-Databricks writers, contractual storage placement, lift-and-shift of existing paths</td></tr>
+        </tbody>
+      </table>
+      <p>Volumes follow the same split and exist to kill direct-path file access: instead of mounting storage or pasting <code>abfss://</code> URIs into notebooks, you read and write files under <code>/Volumes/catalog/schema/volume/...</code> and UC enforces <code>READ VOLUME</code> / <code>WRITE VOLUME</code>. Landing zones for raw files, configs, and ML artifacts all belong in volumes now; DBFS mounts are legacy.</p>
+      <div class="callout warn">
+        <p><strong>Pitfall: "external tables for governance" is dated advice.</strong> At Maersk, Saikrishna's team deliberately moved managed Hive-era tables to external tables for governance and cost control - the right call <em>then</em>, because dropping a managed Hive table destroyed data and the storage was opaque. Under UC the calculus has inverted: managed tables get predictive optimization, faster reads, and clean lifecycle handling, so Databricks now recommends managed for new tables. If you tell an interviewer "we always use external tables for control," you are signaling pre-UC habits. Tell the evolution story instead - it shows you track the platform.</p>
+      </div>
+
+      <h2>Row filters and column masks</h2>
+      <p>Fine-grained access control attaches directly to the table, so it is enforced no matter which client queries it - SQL warehouse, notebook, dashboard, or a Genie space.</p>
+      <ul>
+        <li>A <strong>row filter</strong> is a SQL UDF returning BOOLEAN, bound to a table; rows where it returns false silently disappear for non-qualifying users.</li>
+        <li>A <strong>column mask</strong> is a UDF bound to a column that rewrites the value at query time - return the real value for privileged groups, a redaction for everyone else.</li>
+      </ul>
+      <pre><code>-- Row filter: HR sees everything, business partners only their region
+CREATE OR REPLACE FUNCTION hr_prod.gov.region_filter(region STRING)
+RETURN is_account_group_member('grp-hr-admins')
+    OR exists(
+         SELECT 1 FROM hr_prod.gov.user_region_map m
+         WHERE m.user_name = current_user() AND m.region = region
+       );
+
+ALTER TABLE hr_prod.gold.headcount_salaries
+  SET ROW FILTER hr_prod.gov.region_filter ON (region);
+
+-- Column mask: salary visible only to compensation admins
+CREATE OR REPLACE FUNCTION hr_prod.gov.mask_salary(salary DECIMAL(12,2))
+RETURN CASE WHEN is_account_group_member('grp-hr-comp-admins')
+            THEN salary ELSE NULL END;
+
+ALTER TABLE hr_prod.gold.headcount_salaries
+  ALTER COLUMN salary SET MASK hr_prod.gov.mask_salary;</code></pre>
+      <p>Older alternative: <strong>dynamic views</strong> with <code>is_account_group_member()</code> in the view body. They still work and remain useful when the logic must combine masking with joins or aggregation, but filters and masks are preferred because they protect the base table itself - no way to route around them by querying the table directly. Also know the newer <strong>ABAC direction</strong>: governed tags plus tag-driven policies, so one policy ("mask anything tagged <code>pii.salary</code>") covers many tables - in preview as of mid-2026, so hedge accordingly.</p>
+      <div class="callout story">
+        <p>This is not theory for him. ADM's three production GenAI agents over HR data (PeopleSoft + SAP labor) - the Genie-based Corporate Headcount &amp; Salaries Data Agent, the Policy RAG Assistant on Vector Search, and the multi-agent router, all served as a Databricks App with a Streamlit UI - sit on top of <strong>UC row- and column-level permissions for HR users</strong>. Salary data is the textbook sensitive column. Because Genie generates SQL that executes under the asking user's identity, the UC filters and masks are what guarantee an HR user can only ever see what they are entitled to - the LLM cannot leak rows it cannot read. That one sentence ("we enforced governance below the agent, not in the prompt") lands extremely well in interviews.</p>
+      </div>
+      <div class="callout interview">
+        <p><strong>"How would you secure sensitive data, like salaries, in a lakehouse that feeds both BI and a GenAI assistant?"</strong> Outline: (1) coarse access via catalog/schema GRANTs to groups synced from the IdP; (2) row filters for region/population scoping and column masks for the salary column, attached to the gold table so enforcement is client-independent; (3) execution as the requesting user (Genie runs its generated SQL with the asking user's credentials; on clusters, dedicated access mode - formerly "single user") so filters and masks apply per person; (4) audit via system tables to prove who saw what; (5) the warning that prompt-level guardrails are UX, not security - governance must live in UC. Then anchor it with the ADM HR agents story above.</p>
+      </div>
+
+      <h2>Lineage - and why auditors love it</h2>
+      <p>UC captures lineage automatically from every query that runs on UC-enabled compute: <strong>table-level</strong> (this gold table is fed by these silver tables) and <strong>column-level</strong> (this KPI column derives from these source columns), across SQL, Python, Scala, and R, and extending to notebooks, jobs, and dashboards that touched the data. No agents to install, no third-party scanner to reconcile - it falls out of query execution. You can browse it in Catalog Explorer or query it programmatically via the lineage system tables.</p>
+      <p>Why auditors care: lineage turns "trust me, that P&amp;L number comes from SAP" into a clickable, queryable evidence trail - source column to transformation to executive dashboard. Impact analysis works in reverse: before you change a silver table, lineage tells you every downstream consumer you are about to break.</p>
+      <div class="callout story">
+        <p>At ADM, Saikrishna leads Finance Record-to-Report analytics end to end: Bronze/Silver/Gold medallion pipelines on Azure Databricks + ADF integrating JDE, SAP, HFM (Hyperion), IBM DB2, and IBM APGO Web Wire into Delta Lake, <strong>with lineage and Unity Catalog governance built in</strong>. The consumers are Executive Committee and CFO-level KPI frameworks - P&amp;L, Budget vs Actual, Expense Forecasting, Capital Allocation. For Finance and Audit stakeholders, the ability to trace a number on an executive dashboard back through gold and silver to the exact source-system column is precisely what closes the review conversation. That is the lineage story: not a feature checkbox, but how a finance platform earns trust.</p>
+      </div>
+
+      <h2>System tables: observability and FinOps in SQL</h2>
+      <p>The <code>system</code> catalog exposes platform telemetry as Delta tables you simply query - once an admin enables the schemas and grants access:</p>
+      <ul>
+        <li><code>system.access.audit</code> - who did what: grants, logins, table reads, permission changes. Your audit evidence and anomaly-detection feed.</li>
+        <li><code>system.billing.usage</code> + <code>system.billing.list_prices</code> - DBU consumption by SKU, workspace, and tags. This is the FinOps backbone: join usage to custom tags and you get cost-per-team or cost-per-pipeline dashboards without exporting anything to a spreadsheet.</li>
+        <li><code>system.access.table_lineage</code> / <code>column_lineage</code> - lineage as data, for programmatic impact analysis.</li>
+        <li><code>system.lakeflow.*</code> - job and run telemetry for reliability reporting.</li>
+      </ul>
+      <pre><code>-- Top DBU consumers, last 30 days, by cost-center tag
+SELECT u.custom_tags['cost_center'] AS cost_center,
+       u.sku_name,
+       SUM(u.usage_quantity) AS dbus
+FROM system.billing.usage u
+WHERE u.usage_date &gt;= current_date() - INTERVAL 30 DAYS
+GROUP BY 1, 2
+ORDER BY dbus DESC;</code></pre>
+      <div class="callout tip">
+        <p>Tie this to FinOps work you have actually done: ADM cluster right-sizing, autoscaling policies, and Delta tuning all need a measurement loop, and system tables are the native one. "I'd put an AI/BI dashboard on <code>system.billing.usage</code> grouped by job tag, then re-check after each right-sizing change" is a concrete, current answer. Note retention limits (audit is finite - export long-term if compliance needs years) and that system tables are read-only.</p>
+      </div>
+
+      <h2>Delta Sharing</h2>
+      <p>Delta Sharing is the open protocol for sharing live data without copying it. Two flavors to keep straight:</p>
+      <ul>
+        <li><strong>Open sharing</strong> - the recipient is anyone with a Delta Sharing client (pandas, Spark, Power BI, Tableau); they authenticate with a token-bearing credential file. No Databricks required on their side. Read-only tables and volumes.</li>
+        <li><strong>Databricks-to-Databricks</strong> - both sides have UC; the share attaches as a catalog in the recipient's metastore. Richer: notebooks, views with masks intact, models, and governance stays attached. Cross-cloud and cross-region works.</li>
+      </ul>
+      <p>The provider creates a <code>SHARE</code> (a named collection of objects), a <code>RECIPIENT</code>, and grants the share to the recipient - all auditable UC objects. This also underpins the Databricks Marketplace and Clean Rooms. For Saikrishna this is study knowledge, not a production claim - his sharing surface at ADM has been Power BI and Databricks Apps - but it is a reliable interview topic because it differentiates "copy the data over SFTP" thinking from lakehouse-native thinking.</p>
+
+      <h2>Governing ML and AI assets</h2>
+      <p>UC's quiet superpower is that the same model governs non-tabular assets:</p>
+      <ul>
+        <li><strong>Models</strong> - MLflow models register into UC (<code>catalog.schema.model</code>) with versioning and aliases like <code>@champion</code>; <code>EXECUTE</code> governs invocation, and lineage links a model version to its training tables.</li>
+        <li><strong>Functions</strong> - SQL/Python UDFs in UC double as governed <strong>agent tools</strong>: a Genie space or Agent Bricks agent can only call functions its identity is allowed to execute.</li>
+        <li><strong>Vector Search indexes and serving endpoints</strong> - also UC-governed, which is why the ADM Policy RAG assistant's retrieval layer inherits the same access discipline as its tables. The newer Unity AI Gateway (Beta as of mid-2026) extends this control plane to LLM endpoints and agents.</li>
+      </ul>
+
+      <h2>Migrating from hive_metastore</h2>
+      <p>High-level playbook an interviewer expects you to sketch:</p>
+      <ol>
+        <li><strong>Inventory</strong> the legacy metastore - tables, formats, mounts, who reads what (UCX, the Databricks Labs toolkit, automates assessment).</li>
+        <li><strong>External tables</strong>: register the storage as external locations, then <code>SYNC SCHEMA</code> / <code>SYNC TABLE</code> to upsert UC entries pointing at the same files - metadata-only, repeatable, cheap.</li>
+        <li><strong>Managed Hive tables</strong>: <code>CREATE TABLE AS SELECT</code> or deep clone into UC managed tables (data copy, but you land on predictive-optimization-eligible storage).</li>
+        <li><strong>Repoint and govern</strong>: update jobs and views to three-level names, replace mounts with volumes, recreate ACLs as UC grants to groups, then lock down direct storage access so UC is the only door.</li>
+        <li><strong>Decommission</strong> in waves - run dual-read for a sprint, watch audit/lineage system tables to confirm nothing still reads the old paths.</li>
+      </ol>
+      <div class="callout interview">
+        <p><strong>"Walk me through migrating a workspace from the Hive metastore to Unity Catalog. What breaks?"</strong> Strong outline: assessment with UCX; SYNC for external tables vs CTAS/clone for managed; the things that actually break - two-level table references in old code, <code>dbfs:/mnt</code> paths (replace with volumes), init scripts and cluster-scoped credentials, and jobs running on clusters without UC-capable access modes (standard/dedicated; the old no-isolation mode cannot see UC data). Close with sequencing: migrate readers before writers, keep <code>hive_metastore</code> readable during transition, verify with lineage that the legacy side has gone quiet before dropping it.</p>
+      </div>
+
+      <h2>What's new as of mid-2026</h2>
+      <ul>
+        <li><strong>Metric views are GA</strong> - business metrics (measures, dimensions, joins) defined once in UC and queried consistently from SQL, AI/BI dashboards, and Genie; materialization of metric views is still Experimental. For someone who has built KPI frameworks for CFO-level consumers, this is the feature to name-drop: it moves metric definitions out of per-dashboard logic into governed objects.</li>
+        <li><strong>Managed Apache Iceberg tables are GA</strong> - full read/write through UC's Iceberg REST Catalog, alongside UniForm (Delta tables readable, read-only, by Iceberg clients). UC is positioning as the neutral catalog over both formats; Iceberg v3 brings deletion vectors, row tracking, and VARIANT.</li>
+        <li><strong>Unity AI Gateway (Beta)</strong> - the governance control plane extending UC-style policy to LLM endpoints, agents, and MCP servers; the legacy Mosaic AI Gateway features persist on serving endpoints. Naming is in flux - check current docs before quoting it in an interview.</li>
+      </ul>
+
+      <div class="callout warn">
+        <p><strong>Common trap: claiming UC "encrypts" or "secures the storage layer" by itself.</strong> UC governs access <em>through Databricks compute and APIs</em>. If users or service principals retain direct IAM access to the underlying ADLS containers, they can bypass every GRANT, filter, and mask you wrote. A complete answer always ends with: lock down the storage accounts so the UC storage credential is effectively the only identity with data-plane access, and treat any direct-path access as an exception to be audited away.</p>
+      </div>
+
+      <p>Where to next: governance shapes how you model data in the first place - catalog and schema layout per layer is half of medallion design. Continue to <a href="de-modeling.html">Lakehouse Data Modeling</a>, or revisit how the tables themselves work in <a href="de-delta.html">Delta Lake Internals</a>.</p>
+    </article>
+
+    <div class="pagenav"><a href="de-lakeflow.html"><span class="label">Previous</span>Lakeflow: Jobs &amp; Declarative Pipelines</a><a class="next" href="de-modeling.html"><span class="label">Next</span>Lakehouse Data Modeling</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

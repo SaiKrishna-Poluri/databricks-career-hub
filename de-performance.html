@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Performance Tuning &amp; FinOps · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="de-track.html">Data Engineer Track</a> / Performance Tuning &amp; FinOps</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge de">DE Track · Module 07</span>
+        <h1>Performance Tuning &amp; FinOps</h1>
+        <p class="lede">Turning Spark knowledge into runtime and dollars - the module that maps directly to production wins.</p>
+      </header>
+
+      <h2>The methodology: measure before you touch anything</h2>
+      <p>Every credible tuning answer starts the same way: <strong>you measure first</strong>. Random knob-turning is the number-one anti-pattern interviewers probe for. Your working order:</p>
+      <ol>
+        <li><strong>Measure.</strong> For notebooks and jobs, open the <strong>Spark UI</strong>: find the longest stage, then check shuffle read/write volumes, spill (memory and disk), and task-duration skew (compare median vs. max task time in the stage summary). For Databricks SQL, use the <strong>Query Profile</strong> - it shows time per operator, rows produced, files pruned vs. read, and whether the query hit a cache.</li>
+        <li><strong>Fix data layout.</strong> File sizes, clustering, pruning, statistics. Layout fixes help every downstream query, not just the one you're staring at.</li>
+        <li><strong>Fix code.</strong> Join strategy, eliminating UDFs, removing unnecessary wide transformations, pushing filters early.</li>
+        <li><strong>Fix compute last.</strong> Resizing a cluster to outrun a layout problem is renting your way out of an engineering problem - it works until the data doubles.</li>
+      </ol>
+      <div class="callout tip">
+        <p>Memorize one diagnostic sentence per signal: <strong>spill</strong> means partitions don't fit in task memory; <strong>skew</strong> means a few tasks do most of the work; <strong>high shuffle volume</strong> means you're moving data you could have pruned or broadcast. If you can read those three off the Spark UI, you can structure any tuning conversation.</p>
+      </div>
+
+      <h2>Compute: sizing, autoscaling, spot, Photon, serverless</h2>
+      <h3>Cluster sizing and instance families</h3>
+      <p>Match the family to the bottleneck: <strong>memory-optimized</strong> for wide aggregations, large joins, and anything that spills; <strong>compute-optimized</strong> for CPU-bound transforms and many small tasks; <strong>storage-optimized</strong> (instances with local NVMe) when you lean on the disk cache for repeated reads; general-purpose when you don't yet know. Two sizing heuristics worth quoting: prefer <strong>fewer, larger nodes</strong> for shuffle-heavy work (less network traffic between executors), and size total cluster memory so your largest shuffle stage doesn't spill - spill to disk is often the single biggest silent slowdown.</p>
+      <h3>Autoscaling - and when it hurts</h3>
+      <p>Autoscaling fits ragged, interactive, or multi-job workloads where demand varies. It actively hurts when: (1) the workload is a <strong>steady batch job</strong> - you pay scale-up latency every run for no benefit, so a fixed right-sized cluster is cheaper and more predictable; (2) the job is <strong>shuffle-heavy</strong> - removing a node can lose shuffle files and trigger recomputation; (3) it's a <strong>Structured Streaming</strong> job, where classic autoscaling reacts poorly to micro-batch load. For SQL warehouses, autoscaling adds whole clusters for concurrency rather than resizing one - that one is usually safe to leave on.</p>
+      <h3>Spot instances</h3>
+      <p>Spot/preemptible workers can cut compute cost 60-90 percent. Use them for <strong>retry-tolerant batch</strong> work: keep the driver (and ideally a small core of workers) on-demand, put the rest on spot with fallback to on-demand. Avoid spot for tight-SLA jobs and long-running streaming, where eviction mid-shuffle costs more in recomputation than it saves.</p>
+      <h3>Photon: what it accelerates and when it pays</h3>
+      <p>Photon is the C++ vectorized engine that replaces the JVM execution path for <strong>SQL and DataFrame operations</strong>: scans, filters, joins, aggregations, Delta writes and MERGE. It does <strong>not</strong> accelerate RDD code, Python UDFs, or most Scala UDFs - those fall back to the JVM row-at-a-time path. Photon carries a higher DBU rate, so the test is arithmetic: if it cuts runtime by more than the DBU multiplier increases cost (it often does on scan/join/aggregate-heavy SQL pipelines - 2-3x speedups are common), it is cheaper per job, not just faster. UDF-heavy or RDD-heavy code sees little speedup and pays the full premium. Check the Spark UI or Query Profile for how much of the plan actually ran "photonized" before deciding.</p>
+      <h3>Serverless compute trade-offs</h3>
+      <p>Serverless compute for notebooks, jobs, and pipelines is GA and is the strategic default Databricks is steering toward (serverless jobs and pipelines now default to a "Performance optimized" mode in the UI, with a cheaper standard mode available). What you gain: near-instant startup, no idle clusters burning DBUs, no sizing decisions, Databricks-managed Photon and scaling. What you give up: node-level control (no instance-family choice, no spot strategy, limited Spark conf), and a different cost shape - you pay a premium per DBU in exchange for paying only for execution. Rule of thumb as of mid-2026: serverless wins for spiky, short, or interactive workloads and for teams without tuning bandwidth; a well-tuned classic cluster on spot can still win for long, steady, predictable batch. Run the comparison with your own system-table billing data rather than asserting either way.</p>
+
+      <div class="callout story">
+        <p>At ADM you run the FinOps side of Finance R2R delivery on Azure Databricks: <strong>cluster right-sizing</strong>, <strong>autoscaling policies</strong>, and Delta layout work - <strong>partitioning, compaction, and Z-ORDER</strong> - on the medallion tables feeding P&amp;L and Budget-vs-Actual dashboards for Executive Committee and CFO-level consumers. When you tell this story, structure it in the measure-first order this module teaches: start from observed utilization and job metrics, fix layout before compute, and encode the outcome as policies so improvements persist. The right-sizing, autoscaling, and Delta tuning are genuinely your production work - the sequencing is how you make that work legible to an interviewer.</p>
+      </div>
+
+      <h2>Data layout: the small-file problem and file-size management</h2>
+      <p>Thousands of small files mean slow listings, bloated transaction-log state, and tasks that spend more time on overhead than on data. Classic causes: streaming or frequent small batch appends, over-partitioning, and high-cardinality partition keys. Target file sizes in the hundreds of MB to ~1 GB. The toolkit:</p>
+      <ul>
+        <li><strong><code>OPTIMIZE</code></strong> - compacts small files into larger ones; the scheduled, explicit fix.</li>
+        <li><strong>Optimized writes and auto compaction</strong> - write-time features that produce fewer, larger files as data lands, reducing how often you need OPTIMIZE at all.</li>
+        <li><strong>Predictive optimization</strong> - Databricks runs OPTIMIZE, VACUUM, and ANALYZE automatically on Unity Catalog managed tables based on observed access patterns. It's enabled by default for accounts created on or after November 11, 2024 and has been rolling out broadly - so for UC managed tables, the modern answer is increasingly "let the platform handle maintenance, and verify via system tables that it's happening."</li>
+      </ul>
+      <pre><code>OPTIMIZE finance.gold.gl_actuals;          -- compact small files
+
+-- New tables (current guidance): automatic liquid clustering
+CREATE TABLE finance.gold.gl_actuals (...)
+CLUSTER BY AUTO;
+
+-- Existing table: adopt liquid clustering (drops partition/Z-ORDER strategy)
+ALTER TABLE finance.silver.journal_lines CLUSTER BY (company_code, fiscal_period);</code></pre>
+
+      <h3>Partitioning vs. liquid clustering: the decision framework</h3>
+      <p>As of mid-2026 the official recommendation is <strong>liquid clustering for all new Delta tables</strong>, preferably automatic via <code>CLUSTER BY AUTO</code> with key selection powered by predictive optimization. Hive-style partitioning plus Z-ORDER is legacy guidance - and the two are mutually exclusive: a table is either partitioned/Z-ORDERed or liquid-clustered, never both.</p>
+      <table>
+        <thead>
+          <tr><th>Dimension</th><th>Partitioning + Z-ORDER (legacy)</th><th>Liquid clustering (current default)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Key cardinality</td><td>Low-cardinality partition keys only; high cardinality explodes directories and small files</td><td>Handles high-cardinality keys; no directory explosion</td></tr>
+          <tr><td>Changing access patterns</td><td>Repartitioning = full table rewrite; Z-ORDER rewrites on every run</td><td><code>ALTER TABLE ... CLUSTER BY</code> changes keys without rewriting existing data; incremental clustering</td></tr>
+          <tr><td>Skewed key distribution</td><td>Skewed partitions stay skewed</td><td>Clustering balances file sizes regardless of key skew</td></tr>
+          <tr><td>Operational load</td><td>You schedule and pay for Z-ORDER runs</td><td>With <code>CLUSTER BY AUTO</code> + predictive optimization, largely hands-off</td></tr>
+          <tr><td>When it still makes sense</td><td>Existing stable tables already tuned this way; hard physical-isolation needs (e.g., partition-boundary deletes/retention)</td><td>All new tables; migrate existing tables opportunistically when access patterns shift</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warn">
+        <p><strong>Pitfall: over-partitioning is still the most common layout mistake in the wild.</strong> Partitioning by date <em>and</em> region <em>and</em> category on a mid-sized table creates thousands of tiny partitions, each full of tiny files - the small-file problem with a directory structure on top. Anything below roughly 1 TB rarely needed partitioning even under the old guidance. In an interview, knowing when <em>not</em> to partition signals more seniority than reciting partitioning syntax. And never describe partitioning + Z-ORDER as your recommendation for a <em>new</em> table - say liquid clustering, and mention your production Z-ORDER experience as exactly that: tuning existing tables.</p>
+      </div>
+
+      <h2>Caching: three layers, three different things</h2>
+      <table>
+        <thead>
+          <tr><th>Layer</th><th>What it caches</th><th>Scope and invalidation</th><th>Use when</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Spark cache (<code>df.cache()</code> / <code>persist()</code>)</td><td>Materialized DataFrame in executor memory/disk</td><td>Per-application; manual - goes stale if the underlying table changes; evicted under memory pressure</td><td>One DataFrame reused several times <em>within one job</em> (e.g., iterative logic); always <code>unpersist()</code> after</td></tr>
+          <tr><td>Disk cache (a.k.a. Delta cache)</td><td>Parquet data files on workers' local NVMe</td><td>Per-cluster; automatic and consistency-aware (detects file changes)</td><td>Repeated reads of the same tables on the same cluster; enabled by default on storage-optimized instances</td></tr>
+          <tr><td>DBSQL result cache</td><td>Final result sets of queries on SQL warehouses</td><td>Per-warehouse (plus a remote layer on serverless); invalidated when underlying data changes</td><td>Dashboards where many users re-run identical queries - the BI workhorse</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warn">
+        <p><strong>Pitfall:</strong> sprinkling <code>.cache()</code> over a pipeline as a performance reflex. Caching a DataFrame used once costs memory (often causing the very spill you're debugging) and adds a materialization step. The disk cache already covers repeated reads transparently - reach for <code>.cache()</code> only when you can name the specific re-use it serves.</p>
+      </div>
+
+      <h2>Joins and skew: the recap</h2>
+      <p>The deep treatment lives in <a href="de-spark.html">Module 01 - Apache Spark Internals &amp; Troubleshooting</a>; for this module you need the decision summary. <strong>Broadcast</strong> the small side of a join to eliminate the shuffle entirely (check the threshold; hint explicitly when statistics mislead the planner). Let <strong>AQE</strong> do its job - it coalesces post-shuffle partitions, converts sort-merge joins to broadcast at runtime, and splits skewed partitions via skewed-join handling. When AQE isn't enough - one customer or one ledger account dominating a key - <strong>salt</strong> the hot key manually. Diagnose skew in the Spark UI as a handful of straggler tasks running far longer than the stage median.</p>
+
+      <h2>Writing patterns that keep Photon and the optimizer in play</h2>
+      <ul>
+        <li><strong>Never <code>collect()</code> large results to the driver</strong> - it's the canonical driver-OOM cause. Write results to a table; use <code>display()</code>/<code>limit()</code> to inspect.</li>
+        <li><strong>Prefer built-in functions over UDFs.</strong> Built-ins are visible to Catalyst and run in Photon; a Python UDF is an opaque black box that forces row-by-row serialization to a Python worker and disables Photon for that operator.</li>
+        <li><strong>If you need custom Python, use pandas UDFs</strong> - Arrow-based, vectorized batches instead of row-at-a-time, typically an order of magnitude faster than plain Python UDFs. Still slower than built-ins; treat as the fallback, not the default.</li>
+      </ul>
+      <pre><code># Bad: opaque UDF - no Catalyst, no Photon
+@udf("double")
+def margin(rev, cost):
+    return (rev - cost) / rev if rev else None
+
+# Good: built-in expressions - optimizable, Photon-eligible
+df = df.withColumn(
+    "margin",
+    F.when(F.col("rev") != 0, (F.col("rev") - F.col("cost")) / F.col("rev"))
+)</code></pre>
+
+      <h2>Symptom → likely cause → fix</h2>
+      <table>
+        <thead>
+          <tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>One stage dominated by long shuffle read/write</td><td>Wide join/aggregation moving too much data; no pruning; small side not broadcast</td><td>Filter and project before the shuffle; broadcast the small side; cluster/layout the table so file pruning works; verify AQE coalescing is on</td></tr>
+          <tr><td>Spill (memory and disk) in stage metrics</td><td>Shuffle partitions too large for task memory; under-provisioned memory per core</td><td>Let AQE size partitions; raise <code>spark.sql.shuffle.partitions</code> if static; move to memory-optimized instances; reduce data per task before resizing the cluster</td></tr>
+          <tr><td>Driver OOM</td><td><code>collect()</code> / <code>toPandas()</code> on big data; huge task-result accumulation; thousands of tiny tasks overwhelming scheduling state</td><td>Remove driver-side collection; write to tables instead; compact small files to cut task counts; bigger driver only as last resort</td></tr>
+          <tr><td>Stragglers - a few tasks run 10-100x longer than the median</td><td>Data skew on the join/aggregation key (one hot customer, account, or null bucket)</td><td>Confirm via task-duration distribution; enable AQE skew handling; salt the hot key; handle null keys separately</td></tr>
+          <tr><td>Slow <code>MERGE</code></td><td>MERGE rewrites every file containing a potential match: no pruning on the target, small files, or an unclustered merge key</td><td>Add target-side predicates (e.g., date range) to the ON clause; compact the target; liquid-cluster on the merge key; enable deletion vectors so updates/deletes avoid full file rewrites</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout interview">
+        <p><strong>"A nightly job that used to run in 40 minutes now takes 3 hours and costs 4x. Walk me through what you'd do."</strong></p>
+        <p>Strong outline: (1) <strong>What changed?</strong> Compare Spark UI / job metrics against a good run - data volume growth, new code, cluster change, more concurrent workloads. (2) <strong>Localize:</strong> find the dominant stage; classify it as shuffle volume, spill, or skew. (3) <strong>Layout first:</strong> check small files and pruning - is OPTIMIZE/predictive optimization actually running? Did a key's cardinality drift? (4) <strong>Code:</strong> any new UDFs, a join that lost its broadcast because the small side grew past the threshold, a MERGE without target pruning. (5) <strong>Compute last:</strong> right-size or consider Photon/serverless with a cost-per-run comparison from system tables. Close with prevention: alert on runtime and cost regressions so it never gets to 3 hours unnoticed. The order is the answer.</p>
+      </div>
+
+      <h2>Cost observability: you can't optimize what you can't attribute</h2>
+      <p>On the Data Intelligence Platform, cost data is just more Delta tables - which means you can do FinOps with the same SQL skills you use for finance data:</p>
+      <ul>
+        <li><strong>System tables for billing:</strong> <code>system.billing.usage</code> records DBU consumption per workspace, SKU, and workload, with identity and tag metadata; join to <code>system.billing.list_prices</code> to express it in dollars. Related system schemas cover compute (node types, cluster timelines) and query history for DBSQL.</li>
+        <li><strong>Cluster policies:</strong> the enforcement layer - constrain instance families, max workers, auto-termination, spot usage, and <em>require</em> tags at creation time. A policy is an opinion about cost that users can't forget to follow.</li>
+        <li><strong>Tags:</strong> custom tags on clusters, jobs, and SQL warehouses propagate into billing data (and to cloud-provider billing for classic compute). No tags, no attribution, no accountability.</li>
+        <li><strong>Budgets and alerts:</strong> account-level budgets watch spend against tag- or workspace-scoped filters and notify on threshold breaches - your early-warning system, alongside alerts on the usage tables themselves.</li>
+      </ul>
+      <pre><code>-- Last 30 days of cost by team tag and SKU
+SELECT u.custom_tags['team']                       AS team,
+       u.sku_name,
+       SUM(u.usage_quantity * p.pricing.default)   AS est_dollars
+FROM system.billing.usage u
+JOIN system.billing.list_prices p
+  ON u.sku_name = p.sku_name
+ AND u.usage_start_time &gt;= p.price_start_time
+ AND (p.price_end_time IS NULL OR u.usage_start_time &lt; p.price_end_time)
+WHERE u.usage_date &gt;= current_date() - INTERVAL 30 DAYS
+GROUP BY ALL
+ORDER BY est_dollars DESC;</code></pre>
+
+      <h3>The FinOps operating model: visibility → accountability → optimization</h3>
+      <p>Frame cost work as an operating loop, not a one-off cleanup. <strong>Visibility:</strong> system tables, enforced tagging, and an AI/BI dashboard showing spend by team, job, and SKU - cost becomes a metric people see weekly. <strong>Accountability:</strong> attribute every dollar to an owner via tags, set budgets per team, and let cluster policies make the efficient path the default path. <strong>Optimization:</strong> only now do the technical work - right-sizing, autoscaling and spot policy, Photon and serverless evaluations, layout and compaction - prioritized by the dashboard, and measured against it afterward so wins are provable. Then the loop repeats, because workloads drift. Skipping straight to optimization without visibility is how teams "save" money on clusters nobody was using anyway while the real burn continues untouched.</p>
+
+      <div class="callout story">
+        <p>Your biggest cost number lives at Maersk: re-architecting Fact-Based Reporting's consumption layer - SSAS multidimensional cubes migrated to Azure Analysis Services Tabular, then a Dremio + Power BI semantic-layer lakehouse over Delta on ADLS Gen2, plus moving managed tables to external tables for governance and cost control - delivering a <strong>$10M annual infrastructure cost reduction</strong>. That figure comes from your resume: <strong>verify how it was calculated (and over what baseline) before quoting it externally</strong> - in the meantime, "eight figures annually" or "a multi-million-dollar annual reduction" is a safe phrasing. The architectural story needs no hedging: you removed an expensive serving tier by letting the semantic layer query the lakehouse directly - eliminating a copy of the data and the infrastructure that hosted it, which is FinOps at the architecture level rather than the cluster level.</p>
+      </div>
+
+      <div class="callout interview">
+        <p><strong>"How would you stand up cost governance for Databricks across an organization?"</strong></p>
+        <p>Strong outline: (1) <strong>Visibility</strong> - enable and query billing system tables, build a spend dashboard by workspace/team/job, dollarize with list prices. (2) <strong>Accountability</strong> - mandatory tag policy enforced through cluster policies, budgets with alerts per team, monthly cost review with owners in the room. (3) <strong>Optimization</strong> - a prioritized backlog from the dashboard: kill idle/oversized clusters, fix autoscaling and auto-termination defaults, spot for retry-tolerant batch, Photon/serverless where the math works, then data-layout work (compaction, liquid clustering, predictive optimization) for the biggest tables. Anchor it in experience: you ran this loop at ADM - right-sizing, autoscaling policies, and Delta tuning - and you've delivered architecture-level cost reduction at Maersk. Name the loop explicitly: visibility → accountability → optimization, repeated.</p>
+      </div>
+
+      <div class="callout tip">
+        <p>One-line summary to carry into interviews: <strong>"Measure with the Spark UI and Query Profile, fix layout before code, code before compute, and make cost a first-class metric with system tables, tags, and policies."</strong> Every question in this domain is some subset of that sentence.</p>
+      </div>
+    </article>
+
+    <div class="pagenav"><a href="de-modeling.html"><span class="label">Previous</span>Lakehouse Data Modeling</a><a class="next" href="de-sql.html"><span class="label">Next</span>Databricks SQL &amp; the Semantic Layer</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

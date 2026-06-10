@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lakehouse Data Modeling · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="de-track.html">Data Engineer Track</a> / Lakehouse Data Modeling</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge de">DE Track · Module 06</span>
+        <h1>Lakehouse Data Modeling</h1>
+        <p class="lede">Medallion done right, dimensions on Delta, and the CDC/SCD patterns enterprise interviews probe.</p>
+      </header>
+
+      <h2>Medallion architecture with real semantics</h2>
+      <p>Everyone can recite Bronze/Silver/Gold. What separates a strong answer is precise <strong>semantics per layer</strong> — what guarantees each layer makes and to whom. Treat each layer as a contract:</p>
+      <table>
+        <thead>
+          <tr><th>Layer</th><th>Contract</th><th>Key properties</th><th>Consumers</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Bronze</strong></td>
+            <td>"We captured exactly what the source sent, and we can replay it."</td>
+            <td>Raw, append-only, schema-on-read (or permissive schema), ingestion metadata (load timestamp, source file/batch id, CDC op code). Never updated in place; reprocessable forever.</td>
+            <td>Engineers only. Never BI.</td>
+          </tr>
+          <tr>
+            <td><strong>Silver</strong></td>
+            <td>"This is the conformed, trustworthy version of the entity."</td>
+            <td>Deduplicated, typed, quality-enforced, business keys resolved, SCD history applied, conformed across source systems. One row means one real-world fact or entity version.</td>
+            <td>Data scientists, downstream pipelines, some power analysts.</td>
+          </tr>
+          <tr>
+            <td><strong>Gold</strong></td>
+            <td>"This answers a business question with agreed definitions."</td>
+            <td>Dimensional models, aggregates, KPI tables. Owned definitions (what counts as "revenue"), serving-optimized layout (liquid clustering on join/filter keys).</td>
+            <td>BI tools, semantic layers, executives, GenAI agents.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>The point of Bronze being append-only and replayable is operational: when a Silver transform has a bug, you fix the code and rebuild Silver from Bronze. You never ask SAP to resend three years of journal entries. That replay argument is the one to lead with in interviews.</p>
+
+      <div class="callout warn">
+        <p><strong>Anti-patterns to call out (interviewers love hearing you name them):</strong></p>
+        <ul>
+          <li><strong>Medallion as religion.</strong> Three layers is a default, not a law. A reference table from a clean API may not need a heavy Silver step; a complex finance domain may need a sub-layer between Silver and Gold for hierarchy flattening. Say "the layer count follows the semantics, not the other way around."</li>
+          <li><strong>Gold sprawl.</strong> Every team spinning its own "gold" aggregate with slightly different P&amp;L definitions. Cure: conformed dimensions, a small set of certified Gold marts, Unity Catalog ownership and certification tags, and pushing variant logic into the semantic layer instead of new tables.</li>
+          <li><strong>Skipping Bronze.</strong> Landing transformed data directly to Silver "to save storage" destroys replayability and audit. Storage is the cheapest thing in the stack; re-extraction from an ERP is the most expensive.</li>
+          <li><strong>Bronze-as-dumping-ground with no metadata.</strong> Without load timestamps and source batch ids, you cannot do incremental Silver loads or trace a bad number back to a file.</li>
+        </ul>
+      </div>
+
+      <h2>Dimensional modeling still matters on the lakehouse</h2>
+      <p>Delta did not repeal Kimball. Star schemas survive because BI tools, the columnar engines underneath them, and humans all reason best over <strong>facts joined to conformed dimensions</strong>. What changes on Databricks:</p>
+      <ul>
+        <li><strong>Facts and dimensions are Delta tables</strong> in Unity Catalog — usually managed tables so predictive optimization handles OPTIMIZE/VACUUM, with liquid clustering (<code>CLUSTER BY AUTO</code> for new tables) on the common join and filter keys instead of legacy partitioning + Z-ORDER.</li>
+        <li><strong>Surrogate keys via identity columns.</strong> <code>GENERATED ALWAYS AS IDENTITY</code> gives you monotonically increasing surrogate keys without a sequence service. Caveat worth volunteering: identity columns serialize concurrent writes to that table, so design dimension loads as a single writer.</li>
+        <li><strong>Conformed dimensions are the cure for gold sprawl.</strong> One <code>dim_company</code>, one <code>dim_account</code>, one <code>dim_date</code>, shared across marts so "Budget vs Actual by legal entity" means the same thing in every dashboard.</li>
+        <li><strong>Wide denormalized tables are fine for Gold serving</strong>, but keep the dimensional model in Silver/Gold as the source of those flattened views — denormalize last, not first.</li>
+      </ul>
+
+      <div class="callout story">
+        <p>At ADM you lead Finance Record-to-Report analytics end to end: Bronze/Silver/Gold medallion pipelines on Azure Databricks + ADF integrating JDE, SAP, HFM (Hyperion), IBM DB2, and IBM APGO Web Wire into Delta Lake under Unity Catalog governance. The Gold layer is exactly this conformed-dimension story: P&amp;L, Budget vs Actual, Expense Forecasting, EHS, and Capital Allocation KPI frameworks all consumed at Executive Committee / CFO level — which only works because the entity, account, and period dimensions are conformed once and reused across every KPI mart.</p>
+      </div>
+
+      <h2>SCD Type 1 and Type 2 on Delta</h2>
+      <p><strong>Type 1</strong> (overwrite, no history) is a plain <code>MERGE INTO</code>: update on match, insert on no match. Use it for correction-style attributes where history has no business meaning.</p>
+      <p><strong>Type 2</strong> (full history with validity windows) is the pattern interviews drill. The classic single-statement trick: union the staged changes with a NULL-keyed copy, so one source row <em>expires</em> the current version and its NULL-keyed twin <em>inserts</em> the new version.</p>
+      <pre><code>-- Staged changes already deduplicated to one row per business key
+MERGE INTO silver.dim_customer AS tgt
+USING (
+  -- Rows that match current records: used to close them out
+  SELECT s.customer_id AS merge_key, s.*
+  FROM stg_customer_changes s
+
+  UNION ALL
+
+  -- NULL merge_key never matches, so these fall through to INSERT
+  SELECT NULL AS merge_key, s.*
+  FROM stg_customer_changes s
+  JOIN silver.dim_customer t
+    ON  s.customer_id = t.customer_id
+    AND t.is_current = true
+  WHERE s.attr_hash &lt;&gt; t.attr_hash          -- only real changes spawn a new version
+) AS src
+ON  tgt.customer_id = src.merge_key
+AND tgt.is_current  = true
+
+WHEN MATCHED AND tgt.attr_hash &lt;&gt; src.attr_hash THEN
+  UPDATE SET tgt.is_current = false,
+             tgt.valid_to   = src.change_ts
+
+WHEN NOT MATCHED THEN
+  INSERT (customer_id, customer_name, segment, attr_hash,
+          valid_from, valid_to, is_current)
+  VALUES (src.customer_id, src.customer_name, src.segment, src.attr_hash,
+          src.change_ts, TIMESTAMP'9999-12-31', true);
+-- customer_sk is GENERATED ALWAYS AS IDENTITY: omit it from the INSERT list</code></pre>
+      <p>Design notes that show seniority: compare an <code>attr_hash</code> (hash of tracked columns) instead of column-by-column comparison; pick a deterministic <code>valid_to</code> sentinel; keep <code>is_current</code> as a flag so BI filters are cheap; and cluster the dimension on the business key.</p>
+
+      <div class="callout warn">
+        <p><strong>MERGE pitfall:</strong> if the staged source has two rows for the same business key, MERGE fails with "multiple source rows matched a single target row" — or worse, silently produces overlapping validity windows if you pre-collapsed wrongly. Always dedupe the source first with <code>ROW_NUMBER() OVER (PARTITION BY key ORDER BY change_ts DESC)</code> (Type 1/2 latest-wins) or process intermediate versions in sequence order if the business needs every state.</p>
+      </div>
+
+      <h3>The declarative alternative: AUTO CDC in Lakeflow Spark Declarative Pipelines</h3>
+      <p>Lakeflow Spark Declarative Pipelines (the product formerly called Delta Live Tables) gives you SCD1/SCD2 as a declaration instead of a hand-rolled MERGE. The current SQL API is <code>AUTO CDC INTO</code> (successor to <code>APPLY CHANGES INTO</code>); in Python the import moved from <code>import dlt</code> to <code>from pyspark import pipelines as dp</code>.</p>
+      <pre><code>CREATE OR REFRESH STREAMING TABLE silver.dim_customer;
+
+CREATE FLOW customer_cdc AS AUTO CDC INTO silver.dim_customer
+FROM STREAM(bronze.customer_cdc_feed)
+KEYS (customer_id)
+APPLY AS DELETE WHEN op_code = 'D'
+SEQUENCE BY commit_ts                  -- ordering column for out-of-order events
+STORED AS SCD TYPE 2
+TRACK HISTORY EXCEPT (op_code, commit_ts);</code></pre>
+      <p>What it buys you: out-of-order event handling via <code>SEQUENCE BY</code>, automatic <code>__START_AT</code>/<code>__END_AT</code> columns, delete and truncate handling, and no MERGE choreography to maintain. Know both: hand-rolled MERGE proves you understand the mechanics; AUTO CDC proves you know the platform direction. Be honest about which you have run in production — for you that is MERGE-based pipelines orchestrated by ADF + Databricks Jobs; SDP/AUTO CDC is lab knowledge as of mid-2026.</p>
+
+      <div class="callout interview">
+        <p><strong>"Walk me through implementing SCD Type 2 on Databricks."</strong></p>
+        <p>Strong outline: (1) clarify requirements — which attributes are tracked, latest-wins vs every-version, late data tolerance; (2) land CDC to Bronze append-only with op codes and sequence column; (3) dedupe/stage changes per key; (4) MERGE with the NULL-merge-key union pattern, attr-hash comparison, identity-column surrogate key, <code>valid_from/valid_to/is_current</code>; (5) mention AUTO CDC in Lakeflow Spark Declarative Pipelines as the declarative path and when you would prefer it (streaming CDC, out-of-order events); (6) close with testing — assert no overlapping windows and exactly one current row per key.</p>
+      </div>
+
+      <h2>CDC ingestion patterns</h2>
+      <p>SCD logic is only half the story; the other half is <strong>how change data reaches Bronze</strong>:</p>
+      <ul>
+        <li><strong>Log-based CDC tools</strong> — Qlik Replicate, GoldenGate, Debezium-style feeds. They emit insert/update/delete events with op codes and a sequence (LSN/SCN/commit timestamp). Land them append-only in Bronze; let Silver collapse them. Never apply CDC events directly to Bronze.</li>
+        <li><strong>Watermark / high-water-mark incremental loads</strong> — when the source has a reliable modified timestamp or ascending key, persist the max value loaded in a control table, extract <code>WHERE modified_ts &gt; :watermark</code>, then advance the watermark only after a successful commit. Cheap and tool-free, but blind to hard deletes and to rows updated without touching the timestamp — say that limitation unprompted.</li>
+        <li><strong>Periodic full snapshots + diff</strong> — last resort for small reference data or sources with no CDC story; compute changes by hashing against the previous snapshot.</li>
+        <li><strong>Managed connectors</strong> — Lakeflow Connect now offers GA connectors (SQL Server, Salesforce, Workday and more); worth naming as the platform-native option even if your production patterns predate it.</li>
+        <li><strong>Late-arriving data</strong> — design for it, don't be surprised by it. For facts: a late journal line gets inserted with its true posting date, and aggregates are rebuilt for affected periods (keep Gold rebuilds partition- or cluster-aligned by period). For dimensions: late-arriving dimension members get an inferred "unknown" row inserted at fact-load time and enriched when the real attributes arrive — the classic early-arriving-fact fix.</li>
+      </ul>
+
+      <h2>Data quality as a design layer</h2>
+      <p>Quality is a Silver-boundary concern: data should not earn the "Silver" label without passing checks.</p>
+      <ul>
+        <li><strong>Delta constraints</strong> — <code>NOT NULL</code> and <code>CHECK</code> constraints enforce invariants at write time and fail the transaction. Use for must-never-break rules (no null business keys, amounts within sane bounds).</li>
+        <li><strong>Expectations</strong> — in Lakeflow Spark Declarative Pipelines, <code>EXPECT ... ON VIOLATION DROP ROW / FAIL UPDATE</code> gives you declared rules with metrics. Outside SDP, implement the same idea manually: a rules table evaluated in PySpark.</li>
+        <li><strong>Quarantine tables</strong> — instead of dropping bad rows, route them: split the DataFrame on the validation predicate, write failures to <code>silver.customer_quarantine</code> with the rule that failed and the source batch id, and alert when quarantine counts spike. Quarantine preserves auditability and lets stewards repair and replay.</li>
+        <li><strong>Reconciliation checks</strong> — control totals between layers: row counts and sum-of-amount comparisons Bronze→Silver→Gold per batch, persisted to an audit table, surfaced in monitoring. In finance this is non-negotiable (more below).</li>
+      </ul>
+
+      <div class="callout tip">
+        <p>Frame quality in three tiers when asked: <strong>fail the pipeline</strong> (structural breaks: schema drift on a key column), <strong>quarantine the row</strong> (record-level breaks: orphan foreign keys), <strong>warn and load</strong> (soft rules: suspicious-but-valid values). Mapping rules to tiers shows judgment; "we validate everything" shows none.</p>
+      </div>
+
+      <h2>Metadata-driven pipeline frameworks</h2>
+      <p>Enterprises with 50+ sources do not write 50 hand-crafted pipelines. They build one parameterized framework driven by configuration: a control schema holding source connection, object list, load type (full/incremental/CDC), watermark column, target layer/table, quality rules, and schedule. A generic ADF pipeline (or Lakeflow Job) iterates the config; generic PySpark handles each load pattern. Benefits: onboarding a new table is a config row not a code deploy, standards are enforced by construction, and the audit/reconciliation framework comes free. Costs: the framework is real software — it needs versioning, testing, and an owner; and truly bespoke transforms still need escape hatches to custom code. Saying both sides is what makes the answer senior.</p>
+
+      <div class="callout story">
+        <p>You have built this twice. At Maersk (Fact-Based Reporting), metadata-driven ADF + PySpark pipelines carried SAP S/4HANA, SAP AC-DOCA Universal Journal, and Hyperion HFM data into Delta on ADLS Gen2. At the Port Authority of NY &amp; NJ, the ICMS agency-wide financial lakehouse used the same approach — metadata-driven ADF + PySpark ingestion into ADLS Gen2 Bronze from SAP ECC FI, IBM Planning Analytics, and Budget PRO, covering Plan/Budget/Forecast/Actuals for Capital and Operating portfolios across Aviation, PATH, and TB&amp;T. The interview line: "new source objects became config entries, not new pipelines — that is how a small team scaled across an agency."</p>
+      </div>
+
+      <h2>Semantic layer strategy</h2>
+      <p>Gold tables are not the end of the model — someone has to own metric definitions, hierarchies, and row-level security at the consumption edge. Two dominant enterprise patterns, plus a platform-native newcomer:</p>
+      <table>
+        <thead>
+          <tr><th>Dimension</th><th>Power BI semantic models</th><th>Dremio / Denodo virtualization</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Where logic lives</td><td>Imported/DirectQuery model: DAX measures, hierarchies, RLS inside the Power BI dataset</td><td>Virtual views over the lakehouse (and other sources) queried in place; SQL-defined semantics</td></tr>
+          <tr><td>Performance profile</td><td>Import mode is extremely fast but bounded by refresh cadence and memory; DirectQuery pushes load to DBSQL</td><td>Query-time federation with acceleration (Dremio reflections); no refresh window, but hot paths need tuning</td></tr>
+          <tr><td>Tool lock-in</td><td>Measures usable only from Power BI/Excel ecosystem</td><td>Tool-agnostic: any SQL/BI client hits the same definitions</td></tr>
+          <tr><td>Data movement</td><td>Import duplicates data into the model</td><td>None — data stays in Delta/ADLS</td></tr>
+          <tr><td>Best fit</td><td>Microsoft-standard shop, curated marts, finance users living in Power BI and Excel</td><td>Many BI tools, cross-source federation, "one definition, many consumers" mandates</td></tr>
+        </tbody>
+      </table>
+      <p>Watch the platform-native option too: Unity Catalog metric views (GA as of mid-2026) put governed metric definitions inside the catalog itself, queryable from SQL, AI/BI dashboards, and AI/BI Genie — a direct answer to "where do certified KPIs live so both dashboards and GenAI agents agree."</p>
+
+      <div class="callout story">
+        <p>This trade-off is literally your job: at ADM you provide fit-gap and architecture recommendations including Power BI vs Dremio/Denodo semantic-layer choices, and at Maersk you delivered a Dremio + Power BI semantic-layer lakehouse (after migrating SSAS multidimensional cubes to Azure Analysis Services Tabular). When asked "import or virtualize," answer from that experience: start from consumer count and tool diversity, refresh-latency tolerance, and who owns metric definitions — then pick, and keep certified definitions in exactly one place.</p>
+      </div>
+
+      <h2>Finance differentiator: modeling the Universal Journal</h2>
+      <p>Generic modeling answers are table stakes; finance-domain depth is your edge. What makes finance data hard:</p>
+      <ul>
+        <li><strong>SAP ACDOCA (Universal Journal).</strong> One very wide line-item table unifying FI and CO: every posting carries ledger, company code, account, profit/cost center, and multiple parallel currency columns (transaction, company code, group currency). Model it as the atomic fact in Silver; do not pre-aggregate in Bronze. Key/cluster by company code and fiscal period; carry ledger and currency type explicitly so consumers cannot accidentally mix them.</li>
+        <li><strong>P&amp;L hierarchies.</strong> Financial statement structures are parent-child hierarchies (account → node → statement line) that change over time. Flatten parent-child to level columns for BI, version the hierarchy (effective-dated bridge or SCD2 hierarchy dimension), and expect "restate history under the new hierarchy" as a standard ask — which means hierarchy joins at query time, not baked into facts.</li>
+        <li><strong>Actuals / Plan / Budget / Forecast variance models.</strong> Different sources (ERP actuals vs HFM / IBM Planning Analytics plans), different grains (daily document lines vs monthly cost-center plans), different update cadences. Conform them into one fact with a <code>version</code> dimension (Actual, Plan, Budget, Forecast-cycle) at a common grain, so variance is a pivot, not a join puzzle. Forecasts restate monthly — model forecast cycles as distinct version members, never overwrite.</li>
+        <li><strong>Restatements and reversals.</strong> Finance corrects via reversing documents and reposted periods, not UPDATEs. Your facts must be additive so a reversal nets out, and period-close means data for a "closed" month can still change until close completes — schedule rebuilds accordingly.</li>
+        <li><strong>Reconciliation to the penny.</strong> A CFO dashboard that differs from the GL by one cent is wrong, period. Build automated trial-balance ties: Gold P&amp;L totals reconciled to source GL balances per entity/period each load, with failures blocking publication rather than emailing someone later.</li>
+      </ul>
+
+      <div class="callout interview">
+        <p><strong>"How would you design a lakehouse model for Budget vs Actual reporting across multiple ERPs?"</strong></p>
+        <p>Strong outline: (1) Bronze per source, append-only with batch lineage; (2) Silver conformed atomic facts — actuals at journal-line grain (ACDOCA-style), plans at their native grain — plus conformed <code>dim_account</code>, <code>dim_entity</code>, <code>dim_period</code> built with SCD2 and mapping tables that translate each ERP's chart of accounts to the group chart; (3) a version dimension unifying Actual/Plan/Budget/Forecast at a common reporting grain in Gold; (4) versioned P&amp;L hierarchy joined at query time; (5) penny-level reconciliation gates before anything reaches the CFO; (6) ground it: "this is the R2R pattern I run at ADM across JDE, SAP, and HFM, and ran at PANYNJ across SAP ECC FI, IBM Planning Analytics, and Budget PRO."</p>
+      </div>
+
+      <div class="callout tip">
+        <p>Closing self-check for this module: can you (a) defend each medallion layer's contract in one sentence, (b) write the SCD2 MERGE from memory including the NULL-merge-key trick, (c) explain <code>SEQUENCE BY</code> and why out-of-order CDC breaks naive MERGE, and (d) tell the ACDOCA/variance-model story with your own systems as the example? If yes, you are interview-ready here.</p>
+      </div>
+    </article>
+
+    <div class="pagenav"><a href="de-unity-catalog.html"><span class="label">Previous</span>Unity Catalog &amp; Governance</a><a class="next" href="de-performance.html"><span class="label">Next</span>Performance Tuning &amp; FinOps</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

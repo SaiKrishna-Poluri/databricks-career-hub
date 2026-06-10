@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Databricks SQL &amp; the Semantic Layer · Databricks Career Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a class="brand" href="index.html">Saikrishna Poluri<span class="dot"> ·</span> Databricks Career Hub</a>
+    <a class="navlink" href="index.html">Home</a>
+    <a class="navlink" href="portfolio.html">Portfolio</a>
+    <a class="navlink" href="de-track.html">DE Track</a>
+    <a class="navlink" href="rsa-track.html">RSA Track</a>
+    <a class="navlink" href="prep-track.html">Interview Prep</a>
+    <a class="navlink" href="prep-study-plan.html">Study Plan</a>
+  </nav>
+
+  <main class="page">
+    <div class="breadcrumb"><a href="index.html">Home</a> / <a href="de-track.html">Data Engineer Track</a> / Databricks SQL &amp; the Semantic Layer</div>
+
+    <article class="content">
+      <header class="page-head">
+        <span class="track-badge de">DE Track · Module 08</span>
+        <h1>Databricks SQL &amp; the Semantic Layer</h1>
+        <p class="lede">Warehouses, AI/BI, Genie, and the BI-integration questions his background answers better than most.</p>
+      </header>
+
+      <h2>Why this module punches above its weight for you</h2>
+      <p>Databricks SQL (DBSQL) is where the Data Intelligence Platform meets the business: SQL warehouses serve BI tools, AI/BI Dashboards replace standalone reporting stacks, and Genie turns curated data into natural-language answers. Most data engineers treat this layer as someone else's problem. You can't afford to — and you shouldn't want to, because this is the module where your Power BI, SSAS/AAS, Dremio, and production Genie experience converts directly into interview answers nobody else in the room can give.</p>
+
+      <h2>SQL warehouses: serverless vs pro vs classic</h2>
+      <p>A SQL warehouse is the compute that runs DBSQL queries. It is still Spark under the hood — with Photon, the C++ vectorized engine, doing the heavy lifting — but presented as a T-shirt-sized, autoscaling endpoint instead of a cluster you configure node by node.</p>
+      <table>
+        <thead>
+          <tr><th>Dimension</th><th>Serverless</th><th>Pro</th><th>Classic</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Where compute lives</td><td>Databricks account (managed pool)</td><td>Your cloud account</td><td>Your cloud account</td></tr>
+          <tr><td>Startup time</td><td>Seconds</td><td>Minutes</td><td>Minutes</td></tr>
+          <tr><td>Photon</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Intelligent workload management &amp; rapid autoscaling</td><td>Yes</td><td>No</td><td>No</td></tr>
+          <tr><td>Predictive I/O</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Remote result cache (survives restarts)</td><td>Yes</td><td>No</td><td>No</td></tr>
+          <tr><td>Best for</td><td>BI, spiky concurrency, Genie, MVs/streaming tables</td><td>Steady workloads where compute must stay in your VNet/account</td><td>Legacy; cheapest entry, fewest features</td></tr>
+        </tbody>
+      </table>
+      <p>Three sizing levers, and they answer different problems:</p>
+      <ul>
+        <li><strong>Size (2X-Small → 4X-Large)</strong> scales <em>up</em>: each step roughly doubles compute. Pick a bigger size when individual queries are slow — large scans, heavy joins, disk spill in the query profile.</li>
+        <li><strong>Min/max clusters</strong> scales <em>out</em>: the warehouse adds clusters of the same size and load-balances queries across them. Raise max clusters when queries are individually fast but queue under concurrency (rule of thumb: plan for roughly ten concurrent queries per cluster).</li>
+        <li><strong>Auto-stop</strong> controls idle cost. Serverless starts in seconds, so an aggressive auto-stop (a few minutes) is nearly free in user experience; pro and classic take minutes to warm up, so cutting auto-stop too low just trades compute cost for angry dashboard users at 9am.</li>
+      </ul>
+      <div class="callout tip">
+        <p>Memorize the diagnostic split: <strong>queuing → scale out (more clusters); slow individual queries → scale up (bigger size)</strong>. Interviewers use warehouse sizing as a quick filter, and most candidates blur the two. Add that serverless intelligent workload management partially automates this, and you sound like you have run it, not read it.</p>
+      </div>
+
+      <h2>Queries, alerts, and AI/BI Dashboards</h2>
+      <p>The DBSQL surface area beyond warehouses:</p>
+      <ul>
+        <li><strong>Queries</strong> — saved, parameterized SQL with scheduled refresh; the building block for alerts and legacy dashboards.</li>
+        <li><strong>Alerts</strong> — a query evaluated on a schedule, firing a notification (email, webhook, Slack/Teams via destinations) when a condition is met. Cheap operational monitoring: row-count drops, freshness SLAs, KPI thresholds.</li>
+        <li><strong>AI/BI Dashboards</strong> — the current name (they were briefly "Lakeview"; that name now survives only in the API namespace, and the older DBSQL dashboards are "legacy dashboards"). Built on datasets defined in the dashboard, with cross-filtering, publishing with embedded credentials, and Genie integration so consumers can ask follow-up questions of a curated dashboard.</li>
+      </ul>
+
+      <h2>Genie spaces: NL-to-SQL you can actually govern</h2>
+      <p>AI/BI Genie (GA since June 2025) lets business users ask natural-language questions against a <em>curated</em> set of Unity Catalog tables. The word that matters is curated. A Genie space is not "point an LLM at the catalog" — it is a scoped, instructed, evaluated semantic surface:</p>
+      <ul>
+        <li><strong>Scope</strong>: you pick a small set of tables/views. UC column comments, descriptions, and primary/foreign key metadata become the model's grounding.</li>
+        <li><strong>Instructions</strong>: plain-text business rules — "headcount means active employees only", "fiscal year starts in July", which filters to apply by default.</li>
+        <li><strong>Example queries</strong>: question→SQL pairs that teach the space your join paths and metric definitions.</li>
+        <li><strong>Trusted assets</strong>: parameterized queries or UC SQL functions you mark as trusted. When a user's question matches one, Genie executes your vetted logic instead of free-generating SQL — deterministic answers for the questions that matter most.</li>
+        <li><strong>Evaluation</strong>: benchmark question sets and user feedback (thumbs up/down) let you measure accuracy before and after you widen the audience.</li>
+      </ul>
+      <p>And the design decision that builds trust: <strong>Genie shows the generated SQL with every answer</strong>. An analyst can expand the query, sanity-check the joins and filters, and escalate when something looks wrong. That turns a black-box chatbot into an auditable analytics tool.</p>
+      <div class="callout story">
+        <p>At ADM you built and shipped a <strong>production Genie Space agent for Corporate Headcount &amp; Salaries analytics</strong> over HR data (PeopleSoft + SAP labor data) — one of three GenAI agents you delivered, hosted as a Databricks App with a custom Streamlit UI, an embedded Genie space, Databricks dashboards, and Unity Catalog row- and column-level permissions protecting HR-sensitive fields. You deliberately surfaced the generated SQL to users so HR analysts could verify the logic behind every answer — exactly the trust mechanism interviewers ask about. Very few candidates have taken Genie from demo to production over salary data; lead with the governance story (UC RLS/column masking meant the agent could never leak what the user couldn't already see) and the curation loop (instructions and example queries tuned against real HR questions).</p>
+      </div>
+      <div class="callout interview">
+        <p><strong>"How would you make business users trust a text-to-SQL agent over sensitive data?"</strong></p>
+        <p>Outline: (1) Scope a Genie space to a curated Gold layer, never raw tables. (2) Ground it with UC comments, instructions, and example queries; promote the highest-stakes questions to trusted assets so they run vetted, parameterized SQL. (3) Enforce security in the platform, not the prompt — Unity Catalog row- and column-level permissions apply to Genie's queries, so the agent can only see what the asking user can see. (4) Show the generated SQL for auditability. (5) Run benchmark evaluations and monitor feedback before widening access. Then close with: "This is what I shipped at ADM for HR headcount and salary analytics."</p>
+      </div>
+
+      <h2>Materialized views and streaming tables in DBSQL</h2>
+      <p>DBSQL is no longer read-only serving — you can build incremental transformation logic directly in SQL:</p>
+      <ul>
+        <li><strong>Materialized views (MVs)</strong> precompute a query's result and refresh it incrementally where possible. Ideal for the Gold aggregates dashboards hit hardest: consumers query the MV, not a five-table join, and the cost of computing the join is paid once per refresh instead of per query.</li>
+        <li><strong>Streaming tables</strong> ingest from streaming sources incrementally with exactly-once processing — <code>CREATE STREAMING TABLE</code> with a <code>STREAM</code> or <code>read_files</code> source gives you Auto-Loader-style incremental ingestion in pure SQL.</li>
+      </ul>
+      <pre><code>-- Gold aggregate for the P&amp;L dashboard, refreshed on a schedule
+CREATE MATERIALIZED VIEW finance_gold.pl_by_entity_month
+  SCHEDULE EVERY 1 HOUR
+AS
+SELECT entity, fiscal_period,
+       SUM(amount_usd)            AS actuals,
+       SUM(budget_amount_usd)     AS budget,
+       SUM(amount_usd) - SUM(budget_amount_usd) AS variance
+FROM finance_silver.gl_postings g
+JOIN finance_silver.dim_entity e ON g.entity_key = e.entity_key
+GROUP BY entity, fiscal_period;</code></pre>
+      <p>Both require Unity Catalog and a pro or serverless warehouse to create, and their refreshes actually execute on serverless Lakeflow Spark Declarative Pipelines infrastructure behind the scenes — the SQL surface is sugar over the same engine that runs declarative pipelines. Be straight in interviews: your production aggregations at ADM are built as Delta tables in orchestrated jobs (ADF + Lakeflow Jobs + RunMyJobs); MVs and streaming tables are lab knowledge for you, and you can articulate exactly which of your Gold tables you would convert and why (high-fanout dashboard joins with predictable refresh cadence first).</p>
+
+      <h2>Query profile: tuning warehouse queries</h2>
+      <p>Every DBSQL statement lands in Query History, and the query profile is your flame graph. Read it in this order:</p>
+      <ul>
+        <li><strong>Time breakdown</strong> — scheduling/queuing vs execution vs result fetch. Heavy queuing means a concurrency problem (scale out), not a query problem.</li>
+        <li><strong>Pruning</strong> — files/partitions read vs pruned. Poor pruning on a large Delta table points to missing or wrong liquid clustering keys (remember: liquid clustering, ideally <code>CLUSTER BY AUTO</code>, is the current recommendation for new tables — partitioning + Z-ORDER is legacy guidance).</li>
+        <li><strong>Operator graph</strong> — exploding row counts after a join reveal fan-out mistakes; large shuffle and disk spill say the warehouse is undersized for the query shape.</li>
+        <li><strong>Cache and engine flags</strong> — whether the result came from cache and whether Photon executed the plan.</li>
+      </ul>
+
+      <h2>Result caching: know all the layers</h2>
+      <p>"Why was it fast the second time?" has at least four answers, and naming them precisely is an easy credibility win:</p>
+      <ul>
+        <li><strong>Query result cache (local)</strong> — exact-match results reused on the same running warehouse while the underlying data is unchanged.</li>
+        <li><strong>Remote result cache (serverless)</strong> — persisted result cache that survives warehouse stop/restart, so the Monday-morning dashboard storm doesn't recompute Friday's results.</li>
+        <li><strong>Disk cache</strong> — Parquet data files cached on the warehouse nodes' local SSDs; accelerates repeated scans of the same tables even when results differ.</li>
+        <li><strong>BI-tool caches</strong> — a Power BI import-mode semantic model is itself a giant cache, and dashboard tiles cache on top of that. Diagnose freshness complaints by walking the layers from the screen back to Delta.</li>
+      </ul>
+
+      <h2>Power BI on Databricks</h2>
+      <p>The native Databricks connector in Power BI (Desktop and Service) speaks to SQL warehouses with Microsoft Entra ID SSO or OAuth — no gateway needed for cloud-to-cloud, and user-level identity flows through so Unity Catalog row filters and column masks apply per consumer. The architectural decision is storage mode:</p>
+      <table>
+        <thead>
+          <tr><th>Mode</th><th>How it works</th><th>Choose when</th><th>Watch out for</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Import</td><td>Data copied into the VertiPaq in-memory model on a refresh schedule</td><td>Bounded data volumes, sub-second slicer interactions, offline-from-warehouse cost profile</td><td>Refresh duration/frequency limits; data is stale between refreshes; model size limits</td></tr>
+          <tr><td>DirectQuery</td><td>Every visual interaction generates SQL against the warehouse</td><td>Large/fast-changing data, near-real-time KPIs, UC security must apply per user at query time</td><td>Warehouse becomes part of your page-load path; chatty visuals multiply query volume and DBU spend</td></tr>
+          <tr><td>Composite</td><td>Mix per table: big facts DirectQuery, dims and aggregates imported (dual mode)</td><td>Most real enterprise models — interactive feel with drill-to-detail on demand</td><td>Model complexity; aggregation tables must genuinely match query patterns to get hits</td></tr>
+        </tbody>
+      </table>
+      <p>Performance patterns that make DirectQuery viable: <strong>star schemas</strong> (narrow facts, conformed dimensions — DirectQuery over a wide flat table is how you DDoS your own warehouse), <strong>Power BI aggregation tables</strong> backed by DBSQL materialized views or pre-built Gold aggregates so common visuals never touch the base fact, <strong>dual-mode dimensions</strong> so slicers resolve in memory, and a <strong>dedicated warehouse for the BI workload</strong> sized for its concurrency profile.</p>
+      <div class="callout warn">
+        <p><strong>Pitfall: treating DirectQuery as a default because "the data is always fresh."</strong> A busy report page can fire a dozen queries per user interaction; multiply by hundreds of users and you have a concurrency bill and a queuing problem that no warehouse size fixes cheaply. Default to composite: import or aggregate what is stable, DirectQuery only the paths that genuinely need live data and row-level security at source. And never demo a DirectQuery report against a warehouse with a 5-minute auto-stop on pro/classic — the first viewer of the day eats a multi-minute cold start.</p>
+      </div>
+      <div class="callout story">
+        <p>Semantic layers are your deepest moat. At <strong>Maersk</strong> you migrated SSAS multidimensional cubes to <strong>Azure Analysis Services Tabular</strong> and delivered a <strong>Dremio + Power BI semantic-layer lakehouse</strong> for the Fact-Based Reporting program (SAP S/4HANA ACDOCA and HFM data into Delta on ADLS Gen2, published through Synapse) — so you have personally operated both a classic enterprise semantic model and a lakehouse query-virtualization layer, and you hold the Dremio Verified Lakehouse Associate cert. At <strong>ADM</strong> you now make the fit-gap calls — Power BI vs Dremio vs Denodo semantic layers — as part of architecture recommendations for Finance R2R, where the consumers are Executive Committee and CFO-level. When an interviewer asks "native DBSQL or external semantic layer?", you answer from having run the comparison for real stakeholders, not from a blog post.</p>
+      </div>
+
+      <h3>When does an external semantic layer (Dremio/Denodo) still make sense?</h3>
+      <ul>
+        <li><strong>Choose native</strong> (DBSQL + UC + AI/BI) when Databricks is the center of gravity: one engine, one governance model, Genie and dashboards get the UC metadata for free, and Unity Catalog <strong>metric views</strong> (now GA) give you governed, reusable metric definitions in the catalog itself — Databricks' direct answer to the standalone semantic-layer pitch.</li>
+        <li><strong>Choose Dremio/Denodo</strong> when you must federate across systems that are not moving to the lakehouse soon (mainframe, multiple warehouses, operational databases), when many BI tools need one metric definition and the organization won't standardize on UC, or when query virtualization is a deliberate strategy to defer migration. Cost: another hop, another security model to reconcile with UC, another vendor.</li>
+      </ul>
+      <div class="callout interview">
+        <p><strong>"We have Power BI on Databricks and dashboards are slow and expensive. Walk me through your approach."</strong></p>
+        <p>Outline: (1) Query History first — is time going to queuing (scale out / isolate the BI warehouse) or execution (profile the worst queries)? (2) Check the model: DirectQuery over a flat wide view → restructure to a star schema, move stable dims to dual mode, import or aggregate hot paths. (3) Push aggregations down: Gold aggregate tables or DBSQL materialized views matched to the report's grain, wired to Power BI aggregation tables. (4) Check pruning and clustering on the base tables (liquid clustering keys aligned to dashboard filters). (5) Then FinOps: right-size, set auto-stop, verify the result caches are actually being hit, and tag the warehouse for cost attribution. Anchor it: you orchestrate Power BI refreshes against Databricks in production at ADM today (via Redwood RunMyJobs alongside ADF and Lakeflow Jobs).</p>
+      </div>
+
+      <h2>Workload isolation: separate warehouses per team</h2>
+      <p>One warehouse for everything is a noisy-neighbor machine. The standard pattern is isolation by workload and team:</p>
+      <pre><code>finance-bi-prod       Serverless M, min 1 / max 4   auto-stop 10m  (dashboards, exec consumers)
+finance-adhoc         Serverless S, min 1 / max 2   auto-stop 5m   (analyst exploration)
+finance-genie         Serverless S, min 1 / max 2   auto-stop 5m   (Genie space traffic)
+finance-refresh-etl   Pro L,        min 1 / max 1   auto-stop 10m  (Power BI refresh, alerts)</code></pre>
+      <p>Why it works: a runaway ad-hoc query can no longer queue the CFO's dashboard; each warehouse gets a size and auto-stop tuned to its traffic shape; statement timeouts can be strict on ad-hoc and looser on refresh; and per-warehouse tags flow into <code>system.billing.usage</code> so chargeback per team is a query, not an argument. Connect BI-tool service principals to their own warehouse so refresh storms are visible and attributable.</p>
+      <div class="callout tip">
+        <p>Tie this module to your FinOps story: warehouse isolation plus tags is the DBSQL analog of the cluster right-sizing and autoscaling-policy work you already do at ADM. Same discipline, different compute surface — say it that way and two resume bullets become one coherent operating philosophy.</p>
+      </div>
+
+      <h2>Self-check before you move on</h2>
+      <ul>
+        <li>Queuing vs slow queries: which sizing lever fixes which?</li>
+        <li>Name the three serverless-only advantages over pro (startup, intelligent workload management + rapid scaling, remote result cache).</li>
+        <li>List the four Genie curation mechanisms and explain why showing generated SQL matters.</li>
+        <li>Defend composite mode as the Power BI default for lakehouse-scale facts.</li>
+        <li>Give one situation each where native UC metric views beat Dremio/Denodo — and one where they don't.</li>
+      </ul>
+    </article>
+
+    <div class="pagenav"><a href="de-performance.html"><span class="label">Previous</span>Performance Tuning &amp; FinOps</a><a class="next" href="de-devops.html"><span class="label">Next</span>DevOps on Databricks</a></div>
+  </main>
+
+  <footer>
+    <div>
+      <a href="mailto:sk.poluri8@gmail.com">sk.poluri8@gmail.com</a> ·
+      <a href="https://linkedin.com/in/saikrishna-poluri" target="_blank" rel="noopener">LinkedIn</a> ·
+      <a href="https://saikrishna-poluri.github.io/portfolio" target="_blank" rel="noopener">GitHub Portfolio</a>
+    </div>
+    <div>© 2026 Saikrishna Poluri — built as a working knowledge base for Databricks Data Engineer &amp; Resident Solutions Architect interview preparation.</div>
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>
